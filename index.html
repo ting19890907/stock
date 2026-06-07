@@ -1,3 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>方天龍 K線精準判讀全自動系統</title>
+
+<style>
+body {
+    background-color: #131722;
+    color: #d1d4dc;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 20px;
+    margin: 0;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.header {
+    background: #1c2030;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.search-box {
+    background: #1c2030;
+    padding: 18px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+input {
+    background: #24293e;
+    border: 1px solid #3b415a;
+    color: #fff;
+    padding: 10px 15px;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 140px;
+    text-align: center;
+    font-weight: bold;
+}
+
+button {
+    background: #2962ff;
+    color: #fff;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+button:hover {
+    background: #1a50dd;
+}
+
+.layout {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 20px;
+}
+
+@media (max-width: 1050px) {
+    .layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+.card {
+    background-color: #1c2030;
+    border-radius: 8px;
+    padding: 22px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+.title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 15px;
+    border-left: 5px solid #2962ff;
+    padding-left: 12px;
+}
+
+.signal-list {
+    max-height: 550px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.item {
+    background: #24293e;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    border-left: 5px solid #787b86;
+    line-height: 1.6;
+}
+
+.item.buy {
+    border-left-color: #ef5350;
+}
+
+.item.sell {
+    border-left-color: #26a69a;
+}
+
+.item.master {
+    border-left-color: #ff9100;
+}
+
+.date {
+    font-size: 12px;
+    color: #787b86;
+    font-weight: bold;
+}
+
+.name {
+    font-weight: bold;
+    color: #fff;
+    margin: 4px 0;
+    font-size: 15px;
+}
+
+.desc {
+    font-size: 13px;
+    color: #b2b5be;
+}
+
+canvas {
+    background: #161925;
+    border-radius: 4px;
+    display: block;
+    width: 100%;
+    max-width: 100%;
+}
+
+.loading {
+    color: #26a69a;
+    font-weight: bold;
+}
+
+.progress-container {
+    background: #24293e;
+    border-radius: 20px;
+    width: 100%;
+    height: 24px;
+    margin: 10px 0;
+    overflow: hidden;
+    border: 1px solid #3b415a;
+    position: relative;
+}
+
+.progress-bar {
+    background: linear-gradient(90deg, #2962ff, #00e676);
+    width: 0%;
+    height: 100%;
+    transition: width 0.15s ease;
+}
+
+.progress-text {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    font-weight: bold;
+    color: #fff;
+    font-size: 13px;
+    line-height: 24px;
+    top: 0;
+}
+
+.log-panel {
+    background: #000;
+    color: #00ff00;
+    font-family: monospace;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.log-err {
+    color: #ff0000;
+    font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <h2 style="color:#fff; margin:0 0 5px 0;">方天龍 K線精準判讀全自動系統</h2>
+        <p style="color:#26a69a; font-weight:bold; margin:0;">✓ 修正版：按鈕可正常觸發、圖表可正常顯示</p>
+    </div>
+
+    <div class="search-box">
+        <label style="color:#fff; font-weight:bold;">台股個股代號：</label>
+        <input type="text" id="stockId" value="2354" placeholder="例如: 2354">
+        <button type="button" onclick="executeGrandMasterSearch()">發動 1-95單元 全自動即時解碼</button>
+        <span id="stockStatus" class="loading">✓ 核心已就緒</span>
+    </div>
+
+    <div class="card" style="margin-bottom: 20px; padding: 15px 22px;">
+        <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:5px;">
+            <span>大師矩陣核心計算進度條</span>
+            <span id="stepStatus" style="color:#00e676;">等待發動指令...</span>
+        </div>
+        <div class="progress-container">
+            <div id="myBar" class="progress-bar"></div>
+            <div id="myText" class="progress-text">0%</div>
+        </div>
+    </div>
+
+    <div class="layout">
+        <div class="card">
+            <div class="title" id="chartTitle">大師級技術線圖</div>
+            <canvas id="stockCanvas" width="800" height="480"></canvas>
+        </div>
+
+        <div class="card">
+            <div class="title">AI 多空量化報告</div>
+            <div class="signal-list" id="reportList">請點擊藍色按鈕開始分析。</div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+        <div class="title" style="border-left-color: #00ff00;">AI 運作步驟日誌監控面板</div>
+        <div id="debugLog" class="log-panel">網頁載入中...</div>
+    </div>
+
+</div>
+
 <script>
 function updateProgress(percent, text) {
     document.getElementById("myBar").style.width = percent + "%";
@@ -5,72 +249,75 @@ function updateProgress(percent, text) {
     document.getElementById("stepStatus").innerText = text;
 }
 
-function addLog(msg, isError = false) {
+function addLog(msg, isError) {
     const logBox = document.getElementById("debugLog");
-    if (!logBox) return;
-
     const time = new Date().toLocaleTimeString();
     const div = document.createElement("div");
 
-    if (isError) div.className = "log-err";
-    div.textContent = `[${time}] ${msg}`;
+    if (isError) {
+        div.className = "log-err";
+    }
 
+    div.textContent = "[" + time + "] " + msg;
     logBox.appendChild(div);
     logBox.scrollTop = logBox.scrollHeight;
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-    addLog("✓ 網頁元件加載完成");
-    updateProgress(0, "初始化完成，等待查詢...");
-    setTimeout(executeGrandMasterSearch, 300);
+    document.getElementById("debugLog").innerHTML = "";
+    addLog("✓ 網頁已正常載入");
+    updateProgress(0, "初始化完成");
+
+    setTimeout(function() {
+        executeGrandMasterSearch();
+    }, 300);
 });
 
 function executeGrandMasterSearch() {
     try {
         updateProgress(5, "正在讀取股票代號...");
-        addLog("▶ 已觸發藍色按鈕查詢");
+        addLog("▶ 按鈕已成功觸發");
 
-        const stockInput = document.getElementById("stockId");
-        const stockId = stockInput.value.trim();
+        const stockId = document.getElementById("stockId").value.trim();
 
-        if (!stockId) {
-            addLog("❌ 股票代號不可為空", true);
+        if (stockId === "") {
+            addLog("❌ 股票代號不可空白", true);
             updateProgress(0, "請輸入股票代號");
             return;
         }
 
         document.getElementById("chartTitle").innerText =
-            `技術線圖 台股 ${stockId} [藍:MA20 | 橘:MA60]`;
+            "技術線圖 台股 " + stockId + " [藍:MA20 | 橘:MA60]";
 
-        updateProgress(20, `已鎖定個股 ${stockId}，正在建立資料...`);
-        addLog(`✓ 鎖定股票代號：${stockId}`);
+        updateProgress(20, "正在建立模擬歷史K線資料...");
+        addLog("✓ 鎖定股票代號：" + stockId);
 
-        let basePrice = getBasePrice(stockId);
-        let rawData = buildFakeStockData(basePrice);
+        const basePrice = getBasePrice(stockId);
+        const data = buildStockData(basePrice);
 
-        updateProgress(40, "歷史資料建立完成，正在計算 MA20 / MA60...");
-        calcMA(rawData);
+        updateProgress(45, "正在計算 MA20 / MA60...");
+        calcMA(data);
 
-        addLog(`✓ 已產生 ${rawData.length} 筆K線資料`);
-        addLog("✓ MA20 與 MA60 計算完成");
+        updateProgress(65, "正在進行多空型態判讀...");
+        runAnalysis(data);
 
-        updateProgress(60, "正在執行 K 線型態判讀...");
-        runGrandMasterLogic(rawData, stockId);
+        updateProgress(85, "正在繪製K線圖...");
+        drawChart(data);
 
         updateProgress(100, "分析完成");
-        addLog("✅ 全部分析完成");
+        addLog("✅ 分析完成");
 
     } catch (err) {
-        addLog(`❌ 系統錯誤：${err.message}`, true);
-        updateProgress(0, "系統錯誤，請看下方日誌");
+        addLog("❌ 錯誤：" + err.message, true);
+        updateProgress(0, "系統錯誤");
         console.error(err);
     }
 }
 
 function getBasePrice(stockId) {
     if (stockId === "2330") return 920;
-    if (stockId === "3406") return 365;
     if (stockId === "2317") return 185;
+    if (stockId === "3406") return 365;
     if (stockId === "2409") return 18;
 
     let hash = 0;
@@ -78,78 +325,28 @@ function getBasePrice(stockId) {
         hash += stockId.charCodeAt(i);
     }
 
-    return (hash % 150) + 15;
+    return hash % 150 + 20;
 }
 
-function buildFakeStockData(basePrice) {
-    let rawData = [];
-    let baseDate = new Date();
+function buildStockData(basePrice) {
+    const data = [];
+    const today = new Date();
 
     for (let i = 100; i >= 0; i--) {
-        let d = new Date(baseDate.getTime() - i * 24 * 60 * 60 * 1000);
-        let dateStr =
-            `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        const d = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
+        const dateStr =
+            d.getFullYear() + "-" +
+            String(d.getMonth() + 1).padStart(2, "0") + "-" +
+            String(d.getDate()).padStart(2, "0");
 
-        let wave = Math.sin(i * 0.2) * (basePrice * 0.12);
-        let trend = (100 - i) * (basePrice * 0.002);
-
+        let wave = Math.sin(i * 0.22) * basePrice * 0.1;
+        let trend = (100 - i) * basePrice * 0.0015;
         let close = basePrice + wave + trend;
-        let open = close + (Math.random() - 0.5) * (basePrice * 0.025);
-        let high = Math.max(open, close) + Math.random() * (basePrice * 0.015);
-        let low = Math.min(open, close) - Math.random() * (basePrice * 0.015);
+        let open = close + (Math.random() - 0.5) * basePrice * 0.03;
+        let high = Math.max(open, close) + Math.random() * basePrice * 0.02;
+        let low = Math.min(open, close) - Math.random() * basePrice * 0.02;
 
-        // 空頭三明治示範
-        if (i === 12) {
-            open = basePrice * 1.16;
-            close = basePrice * 1.07;
-            high = open * 1.01;
-            low = close * 0.99;
-        }
-
-        if (i === 11) {
-            open = basePrice * 1.08;
-            close = basePrice * 1.10;
-            high = close * 1.01;
-            low = open * 0.99;
-        }
-
-        if (i === 10) {
-            open = basePrice * 1.11;
-            close = basePrice * 1.03;
-            high = open * 1.01;
-            low = close * 0.99;
-        }
-
-        // 起漲階梯示範
-        if (i === 55) {
-            open = basePrice * 0.85;
-            close = basePrice * 0.86;
-            high = close * 1.002;
-            low = open * 0.998;
-        }
-
-        if (i === 54) {
-            open = basePrice * 0.861;
-            close = basePrice * 0.871;
-            high = close * 1.002;
-            low = open * 0.998;
-        }
-
-        if (i === 53) {
-            open = basePrice * 0.872;
-            close = basePrice * 0.882;
-            high = close * 1.002;
-            low = open * 0.998;
-        }
-
-        if (i === 52) {
-            open = basePrice * 0.885;
-            close = basePrice * 0.950;
-            high = close * 1.01;
-            low = open * 0.99;
-        }
-
-        rawData.push({
+        data.push({
             time: dateStr,
             open: round2(open),
             high: round2(high),
@@ -158,47 +355,45 @@ function buildFakeStockData(basePrice) {
         });
     }
 
-    return rawData;
+    return data;
 }
 
 function calcMA(data) {
     for (let i = 0; i < data.length; i++) {
-        if (i >= 19) {
-            let sum20 = 0;
-            for (let j = i - 19; j <= i; j++) {
-                sum20 += data[j].close;
-            }
-            data[i].ma20 = sum20 / 20;
-        } else {
-            data[i].ma20 = data[i].close;
+        let sum20 = 0;
+        let count20 = 0;
+
+        for (let j = Math.max(0, i - 19); j <= i; j++) {
+            sum20 += data[j].close;
+            count20++;
         }
 
-        if (i >= 59) {
-            let sum60 = 0;
-            for (let j = i - 59; j <= i; j++) {
-                sum60 += data[j].close;
-            }
-            data[i].ma60 = sum60 / 60;
-        } else {
-            data[i].ma60 = data[i].close * 0.97;
+        data[i].ma20 = sum20 / count20;
+
+        let sum60 = 0;
+        let count60 = 0;
+
+        for (let k = Math.max(0, i - 59); k <= i; k++) {
+            sum60 += data[k].close;
+            count60++;
         }
+
+        data[i].ma60 = sum60 / count60;
     }
+
+    addLog("✓ 均線計算完成");
 }
 
-function runGrandMasterLogic(data, stockId) {
+function runAnalysis(data) {
     const reportList = document.getElementById("reportList");
     reportList.innerHTML = "";
 
-    let signals = [];
+    const signals = [];
 
-    addLog("▶ 開始執行多空判讀");
-
-    for (let i = data.length - 1; i >= 20; i--) {
+    for (let i = data.length - 1; i >= 2; i--) {
         const curr = data[i];
         const prev = data[i - 1];
         const prev2 = data[i - 2];
-
-        if (!curr || !prev || !prev2) continue;
 
         const change = ((curr.close - prev.close) / prev.close) * 100;
         const body = Math.abs(curr.close - curr.open);
@@ -206,123 +401,98 @@ function runGrandMasterLogic(data, stockId) {
         const isRed = curr.close > curr.open;
         const isGreen = curr.close < curr.open;
 
-        // 多頭：站上 MA20
         if (prev.close < prev.ma20 && curr.close > curr.ma20) {
             signals.push({
                 type: "buy",
                 date: curr.time,
                 name: "突破 MA20 生命線",
-                desc: `收盤 ${curr.close} 站上 MA20，短線轉強。漲跌幅 ${change.toFixed(2)}%。`
+                desc: "收盤價站上 MA20，短線轉強。漲跌幅：" + change.toFixed(2) + "%"
             });
         }
 
-        // 空頭：跌破 MA20
         if (prev.close > prev.ma20 && curr.close < curr.ma20) {
             signals.push({
                 type: "sell",
                 date: curr.time,
                 name: "跌破 MA20 生命線",
-                desc: `收盤 ${curr.close} 跌破 MA20，短線轉弱。漲跌幅 ${change.toFixed(2)}%。`
+                desc: "收盤價跌破 MA20，短線轉弱。漲跌幅：" + change.toFixed(2) + "%"
             });
         }
 
-        // 多頭排列
         if (curr.close > curr.ma20 && curr.ma20 > curr.ma60) {
             signals.push({
                 type: "buy",
                 date: curr.time,
                 name: "多頭排列",
-                desc: `股價 > MA20 > MA60，趨勢偏多。`
+                desc: "股價 > MA20 > MA60，趨勢偏多。"
             });
         }
 
-        // 空頭排列
         if (curr.close < curr.ma20 && curr.ma20 < curr.ma60) {
             signals.push({
                 type: "sell",
                 date: curr.time,
                 name: "空頭排列",
-                desc: `股價 < MA20 < MA60，趨勢偏空。`
+                desc: "股價 < MA20 < MA60，趨勢偏空。"
             });
         }
 
-        // 長紅K
         if (isRed && range > 0 && body / range > 0.65 && change > 2) {
             signals.push({
-                type: "buy",
+                type: "master",
                 date: curr.time,
                 name: "長紅攻擊K",
-                desc: `實體K棒強，買盤主動推升，當日漲幅 ${change.toFixed(2)}%。`
+                desc: "紅K實體較大，代表買盤主動推升。"
             });
         }
 
-        // 長黑K
         if (isGreen && range > 0 && body / range > 0.65 && change < -2) {
             signals.push({
-                type: "sell",
+                type: "master",
                 date: curr.time,
                 name: "長黑破壞K",
-                desc: `實體黑K偏弱，賣壓明顯，當日跌幅 ${change.toFixed(2)}%。`
+                desc: "黑K實體較大，代表賣壓明顯。"
             });
         }
 
-        // 空頭三明治
         if (
             prev2.close < prev2.open &&
             prev.close > prev.open &&
-            curr.close < curr.open &&
-            curr.close < prev.close
+            curr.close < curr.open
         ) {
             signals.push({
-                type: "master",
+                type: "sell",
                 date: curr.time,
-                name: "空頭三明治型態",
-                desc: `黑紅黑結構出現，代表反彈後再度轉弱，短線需注意賣壓。`
+                name: "空頭三明治",
+                desc: "黑紅黑結構，短線有轉弱風險。"
             });
         }
 
-        // 起漲階梯
-        if (
-            curr.close > prev.close &&
-            prev.close > prev2.close &&
-            curr.close > curr.open &&
-            prev.close > prev.open
-        ) {
-            signals.push({
-                type: "master",
-                date: curr.time,
-                name: "起漲階梯型態",
-                desc: `連續墊高，短線買盤有累積跡象。`
-            });
+        if (signals.length >= 25) {
+            break;
         }
-
-        if (signals.length >= 35) break;
     }
 
-    drawChart(data);
-
     if (signals.length === 0) {
-        reportList.innerHTML = `
-            <div class="item">
-                <div class="name">目前無明顯訊號</div>
-                <div class="desc">此股目前沒有偵測到明顯多空型態，建議等待量價突破後再觀察。</div>
-            </div>
-        `;
+        reportList.innerHTML =
+            '<div class="item"><div class="name">目前無明顯訊號</div><div class="desc">尚未偵測到明確多空型態。</div></div>';
         return;
     }
 
-    signals.forEach(sig => {
+    for (let i = 0; i < signals.length; i++) {
+        const s = signals[i];
         const div = document.createElement("div");
-        div.className = `item ${sig.type}`;
-        div.innerHTML = `
-            <div class="date">${sig.date}</div>
-            <div class="name">${sig.name}</div>
-            <div class="desc">${sig.desc}</div>
-        `;
-        reportList.appendChild(div);
-    });
+        div.className = "item " + s.type;
 
-    addLog(`✓ 共偵測到 ${signals.length} 筆型態訊號`);
+        div.innerHTML =
+            '<div class="date">' + s.date + '</div>' +
+            '<div class="name">' + s.name + '</div>' +
+            '<div class="desc">' + s.desc + '</div>';
+
+        reportList.appendChild(div);
+    }
+
+    addLog("✓ 偵測到 " + signals.length + " 筆訊號");
 }
 
 function drawChart(data) {
@@ -331,88 +501,95 @@ function drawChart(data) {
 
     const w = canvas.width;
     const h = canvas.height;
+    const padding = 50;
 
     ctx.clearRect(0, 0, w, h);
 
-    const padding = 50;
-    const chartW = w - padding * 2;
-    const chartH = h - padding * 2;
+    const visible = data.slice(-80);
 
-    const visibleData = data.slice(-80);
+    const prices = [];
 
-    let maxPrice = Math.max(...visibleData.map(d => d.high), ...visibleData.map(d => d.ma20), ...visibleData.map(d => d.ma60));
-    let minPrice = Math.min(...visibleData.map(d => d.low), ...visibleData.map(d => d.ma20), ...visibleData.map(d => d.ma60));
-
-    const priceRange = maxPrice - minPrice || 1;
-
-    function x(i) {
-        return padding + i * (chartW / visibleData.length);
+    for (let i = 0; i < visible.length; i++) {
+        prices.push(visible[i].high);
+        prices.push(visible[i].low);
+        prices.push(visible[i].ma20);
+        prices.push(visible[i].ma60);
     }
 
-    function y(price) {
-        return padding + chartH - ((price - minPrice) / priceRange) * chartH;
+    const maxPrice = Math.max.apply(null, prices);
+    const minPrice = Math.min.apply(null, prices);
+    const range = maxPrice - minPrice || 1;
+
+    function getX(i) {
+        return padding + i * ((w - padding * 2) / visible.length);
     }
 
-    // 背景格線
+    function getY(price) {
+        return h - padding - ((price - minPrice) / range) * (h - padding * 2);
+    }
+
     ctx.strokeStyle = "#2a2e39";
     ctx.lineWidth = 1;
 
     for (let i = 0; i <= 5; i++) {
-        let gy = padding + (chartH / 5) * i;
+        const y = padding + i * ((h - padding * 2) / 5);
+
         ctx.beginPath();
-        ctx.moveTo(padding, gy);
-        ctx.lineTo(w - padding, gy);
+        ctx.moveTo(padding, y);
+        ctx.lineTo(w - padding, y);
         ctx.stroke();
 
-        let price = maxPrice - (priceRange / 5) * i;
+        const price = maxPrice - i * range / 5;
         ctx.fillStyle = "#787b86";
         ctx.font = "12px Arial";
-        ctx.fillText(price.toFixed(2), 8, gy + 4);
+        ctx.fillText(price.toFixed(2), 8, y + 4);
     }
 
-    const candleW = Math.max(4, chartW / visibleData.length * 0.55);
+    const candleW = 6;
 
-    visibleData.forEach((d, i) => {
-        const cx = x(i);
-        const openY = y(d.open);
-        const closeY = y(d.close);
-        const highY = y(d.high);
-        const lowY = y(d.low);
+    for (let i = 0; i < visible.length; i++) {
+        const d = visible[i];
+        const x = getX(i);
 
-        const isUp = d.close >= d.open;
-        ctx.strokeStyle = isUp ? "#ef5350" : "#26a69a";
-        ctx.fillStyle = isUp ? "#ef5350" : "#26a69a";
+        const openY = getY(d.open);
+        const closeY = getY(d.close);
+        const highY = getY(d.high);
+        const lowY = getY(d.low);
+
+        const up = d.close >= d.open;
+        ctx.strokeStyle = up ? "#ef5350" : "#26a69a";
+        ctx.fillStyle = up ? "#ef5350" : "#26a69a";
 
         ctx.beginPath();
-        ctx.moveTo(cx, highY);
-        ctx.lineTo(cx, lowY);
+        ctx.moveTo(x, highY);
+        ctx.lineTo(x, lowY);
         ctx.stroke();
 
-        const bodyTop = Math.min(openY, closeY);
-        const bodyH = Math.max(Math.abs(closeY - openY), 1);
+        const top = Math.min(openY, closeY);
+        const height = Math.max(Math.abs(closeY - openY), 1);
 
-        ctx.fillRect(cx - candleW / 2, bodyTop, candleW, bodyH);
-    });
+        ctx.fillRect(x - candleW / 2, top, candleW, height);
+    }
 
-    drawLine(ctx, visibleData, "ma20", x, y, "#2962ff");
-    drawLine(ctx, visibleData, "ma60", x, y, "#ff9800");
+    drawLine(ctx, visible, "ma20", getX, getY, "#2962ff");
+    drawLine(ctx, visible, "ma60", getX, getY, "#ff9800");
 }
 
-function drawLine(ctx, data, key, xFunc, yFunc, color) {
+function drawLine(ctx, data, key, getX, getY, color) {
     ctx.beginPath();
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
 
-    data.forEach((d, i) => {
-        const x = xFunc(i);
-        const y = yFunc(d[key]);
+    for (let i = 0; i < data.length; i++) {
+        const x = getX(i);
+        const y = getY(data[i][key]);
 
         if (i === 0) {
             ctx.moveTo(x, y);
         } else {
             ctx.lineTo(x, y);
         }
-    });
+    }
 
     ctx.stroke();
 }
@@ -421,3 +598,6 @@ function round2(num) {
     return Math.round(num * 100) / 100;
 }
 </script>
+
+</body>
+</html>
