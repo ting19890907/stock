@@ -1,530 +1,9 @@
-const GOOGLE_API_KEY = "請貼上你的Google_AI_API_KEY";
-const GOOGLE_MODEL = "gemini-1.5-flash";
-
-export default {
- async fetch(request) {
-  const url = new URL(request.url);
-
-  if (url.pathname === "/api/stock") {
-   return handleStockApi(request);
-  }
-
-  if (url.pathname === "/api/google-ai") {
-   return handleGoogleAiApi(request);
-  }
-
-  return new Response(getHtml(), {
-   headers: {
-    "Content-Type": "text/html; charset=utf-8"
-   }
-  });
- }
-};
-
-async function handleStockApi(request) {
- try {
-  const url = new URL(request.url);
-  const stockId = String(url.searchParams.get("stockId") || "").trim();
-
-  if (!stockId) {
-   return jsonResponse({
-    ok: false,
-    error: "缺少 stockId"
-   }, 400);
-  }
-
-  const result = await fetchRealStockData(stockId);
-
-  return jsonResponse({
-   ok: true,
-   stockId: stockId,
-   source: result.source,
-   data: result.rows
-  });
-
- } catch (err) {
-  return jsonResponse({
-   ok: false,
-   error: err.message || "股票資料抓取失敗"
-  }, 500);
- }
-}
-
-async function handleGoogleAiApi(request) {
- try {
-  if (!GOOGLE_API_KEY || GOOGLE_API_KEY === "請貼上你的Google_AI_API_KEY") {
-   return jsonResponse({
-    ok: true,
-    text: "尚未填入 Google AI API Key，所以這次只顯示本系統原始判讀。"
-   });
-  }
-
-  if (request.method !== "POST") {
-   return jsonResponse({
-    ok: false,
-    error: "只允許 POST"
-   }, 405);
-  }
-
-  const body = await request.json();
-  const prompt = body.prompt || "";
-
-  if (!prompt) {
-   return jsonResponse({
-    ok: false,
-    error: "缺少 prompt"
-   }, 400);
-  }
-
-  const apiUrl =
-   "https://generativelanguage.googleapis.com/v1beta/models/" +
-   GOOGLE_MODEL +
-   ":generateContent?key=" +
-   GOOGLE_API_KEY;
-
-  const response = await fetch(apiUrl, {
-   method: "POST",
-   headers: {
-    "Content-Type": "application/json"
-   },
-   body: JSON.stringify({
-    contents: [
-     {
-      parts: [
-       {
-        text: prompt
-       }
-      ]
-     }
-    ]
-   })
-  });
-
-  const json = await response.json();
-
-  if (!response.ok) {
-   let msg = "Google AI 回傳錯誤";
-   if (json && json.error && json.error.message) {
-    msg = json.error.message;
-   }
-
-   return jsonResponse({
-    ok: false,
-    error: msg
-   }, 500);
-  }
-
-  let text = "Google AI 有回傳，但沒有文字內容。";
-
-  if (
-   json &&
-   json.candidates &&
-   json.candidates[0] &&
-   json.candidates[0].content &&
-   json.candidates[0].content.parts &&
-   json.candidates[0].content.parts[0] &&
-   json.candidates[0].content.parts[0].text
-  ) {
-   text = json.candidates[0].content.parts[0].text;
-  }
-
-  return jsonResponse({
-   ok: true,
-   text: text
-  });
-
- } catch (err) {
-  return jsonResponse({
-   ok: false,
-   error: err.message || "Google AI 連線失敗"
-  }, 500);
- }
-}
-
-function jsonResponse(data, status = 200) {
- return new Response(JSON.stringify(data), {
-  status: status,
-  headers: {
-   "Content-Type": "application/json; charset=utf-8",
-   "Access-Control-Allow-Origin": "*",
-   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-   "Access-Control-Allow-Headers": "Content-Type"
-  }
- });
-}
-
-async function fetchRealStockData(stockId) {
- let rows = await fetchYahooStock(stockId, "TW");
-
- if (rows.length >= 20) {
-  return {
-   source: "Yahoo .TW",
-   rows: rows.slice(-160)
-  };
- }
-
- rows = await fetchYahooStock(stockId, "TWO");
-
- if (rows.length >= 20) {
-  return {
-   source: "Yahoo .TWO",
-   rows: rows.slice(-160)
-  };
- }
-
- rows = await fetchTaiwanOfficial(stockId);
-
- if (rows.length >= 20) {
-  return {
-   source: "TWSE / TPEx Official",
-   rows: rows.slice(-160)
-  };
- }
-
- throw new Error("抓不到足夠真實 K 線資料，請確認股票代號是否正確。");
-}
-
-async function fetchYahooStock(stockId, suffix) {
- try {
-  const symbol = stockId + "." + suffix;
-
-  const apiUrl =
-   "https://query1.finance.yahoo.com/v8/finance/chart/" +
-   symbol +
-   "?range=8mo&interval=1d";
-
-  const response = await fetch(apiUrl, {
-   headers: {
-    "User-Agent": "Mozilla/5.0"
-   }
-  });
-
-  if (!response.ok) {
-   return [];
-  }
-
-  const json = await response.json();
-
-  if (
-   !json ||
-   !json.chart ||
-   !json.chart.result ||
-   !json.chart.result[0]
-  ) {
-   return [];
-  }
-
-  const result = json.chart.result[0];
-  const timestamps = result.timestamp || [];
-
-  if (
-   !result.indicators ||
-   !result.indicators.quote ||
-   !result.indicators.quote[0]
-  ) {
-   return [];
-  }
-
-  const quote = result.indicators.quote[0];
-  const opens = quote.open || [];
-  const highs = quote.high || [];
-  const lows = quote.low || [];
-  const closes = quote.close || [];
-  const volumes = quote.volume || [];
-
-  const rows = [];
-
-  for (let i = 0; i < timestamps.length; i++) {
-   const open = Number(opens[i]);
-   const high = Number(highs[i]);
-   const low = Number(lows[i]);
-   const close = Number(closes[i]);
-   const volume = Number(volumes[i] || 0);
-
-   if (
-    isFinite(open) &&
-    isFinite(high) &&
-    isFinite(low) &&
-    isFinite(close)
-   ) {
-    const d = new Date(timestamps[i] * 1000);
-
-    const time =
-     d.getFullYear() + "-" +
-     String(d.getMonth() + 1).padStart(2, "0") + "-" +
-     String(d.getDate()).padStart(2, "0");
-
-    rows.push({
-     time: time,
-     open: round2(open),
-     high: round2(high),
-     low: round2(low),
-     close: round2(close),
-     volume: volume
-    });
-   }
-  }
-
-  return rows;
-
- } catch (err) {
-  return [];
- }
-}
-
-async function fetchTaiwanOfficial(stockId) {
- const months = getRecentMonths(8);
- let allRows = [];
-
- for (let i = 0; i < months.length; i++) {
-  const yyyymmdd = months[i] + "01";
-
-  let rows = await fetchTwseMonth(stockId, yyyymmdd);
-
-  if (rows.length === 0) {
-   rows = await fetchTpexMonth(stockId, yyyymmdd);
-  }
-
-  allRows = allRows.concat(rows);
-  await sleep(250);
- }
-
- allRows.sort(function(a, b) {
-  return new Date(a.time) - new Date(b.time);
- });
-
- const map = {};
- const unique = [];
-
- for (let i = 0; i < allRows.length; i++) {
-  const d = allRows[i];
-
-  if (!map[d.time]) {
-   map[d.time] = true;
-   unique.push(d);
-  }
- }
-
- return unique;
-}
-
-async function fetchTwseMonth(stockId, yyyymmdd) {
- try {
-  const apiUrl =
-   "https://www.twse.com.tw/exchangeReport/STOCK_DAY?response=json&date=" +
-   yyyymmdd +
-   "&stockNo=" +
-   stockId;
-
-  const response = await fetch(apiUrl, {
-   headers: {
-    "User-Agent": "Mozilla/5.0"
-   }
-  });
-
-  if (!response.ok) {
-   return [];
-  }
-
-  const json = await response.json();
-
-  if (!json || !json.data || !Array.isArray(json.data)) {
-   return [];
-  }
-
-  const rows = [];
-
-  for (let i = 0; i < json.data.length; i++) {
-   const row = json.data[i];
-
-   const time = rocDateToAD(row[0]);
-   const volume = parsePrice(row[1]);
-   const open = parsePrice(row[3]);
-   const high = parsePrice(row[4]);
-   const low = parsePrice(row[5]);
-   const close = parsePrice(row[6]);
-
-   if (
-    time &&
-    isFinite(open) &&
-    isFinite(high) &&
-    isFinite(low) &&
-    isFinite(close)
-   ) {
-    rows.push({
-     time: time,
-     open: open,
-     high: high,
-     low: low,
-     close: close,
-     volume: isFinite(volume) ? volume : 0
-    });
-   }
-  }
-
-  return rows;
-
- } catch (err) {
-  return [];
- }
-}
-
-async function fetchTpexMonth(stockId, yyyymmdd) {
- try {
-  const rocDate = adDateToRocDate(yyyymmdd);
-
-  const urls = [
-   "https://www.tpex.org.tw/www/zh-tw/afterTrading/tradingStock?code=" +
-    stockId +
-    "&date=" +
-    rocDate +
-    "&id=&response=json",
-
-   "https://www.tpex.org.tw/web/stock/aftertrading/daily_trading_info/st43_result.php?l=zh-tw&d=" +
-    rocDate +
-    "&stkno=" +
-    stockId
-  ];
-
-  for (let u = 0; u < urls.length; u++) {
-   const response = await fetch(urls[u], {
-    headers: {
-     "User-Agent": "Mozilla/5.0"
-    }
-   });
-
-   if (!response.ok) {
-    continue;
-   }
-
-   const json = await response.json();
-   let tableRows = [];
-
-   if (
-    json &&
-    Array.isArray(json.tables) &&
-    json.tables[0] &&
-    Array.isArray(json.tables[0].data)
-   ) {
-    tableRows = json.tables[0].data;
-   } else if (json && Array.isArray(json.data)) {
-    tableRows = json.data;
-   } else if (json && Array.isArray(json.aaData)) {
-    tableRows = json.aaData;
-   } else {
-    continue;
-   }
-
-   const rows = [];
-
-   for (let i = 0; i < tableRows.length; i++) {
-    const row = tableRows[i];
-
-    const time = rocDateToAD(row[0]);
-    const volume = parsePrice(row[1]);
-    const open = parsePrice(row[3]);
-    const high = parsePrice(row[4]);
-    const low = parsePrice(row[5]);
-    const close = parsePrice(row[6]);
-
-    if (
-     time &&
-     isFinite(open) &&
-     isFinite(high) &&
-     isFinite(low) &&
-     isFinite(close)
-    ) {
-     rows.push({
-      time: time,
-      open: open,
-      high: high,
-      low: low,
-      close: close,
-      volume: isFinite(volume) ? volume : 0
-     });
-    }
-   }
-
-   if (rows.length > 0) {
-    return rows;
-   }
-  }
-
-  return [];
-
- } catch (err) {
-  return [];
- }
-}
-
-function getRecentMonths(count) {
- const arr = [];
- const now = new Date();
-
- for (let i = count - 1; i >= 0; i--) {
-  const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  arr.push(String(y) + m);
- }
-
- return arr;
-}
-
-function rocDateToAD(str) {
- if (!str) return "";
-
- const clean = String(str).trim().replace(/\s/g, "");
- const parts = clean.split("/");
-
- if (parts.length !== 3) return "";
-
- const year = parseInt(parts[0], 10) + 1911;
- const month = String(parseInt(parts[1], 10)).padStart(2, "0");
- const day = String(parseInt(parts[2], 10)).padStart(2, "0");
-
- return year + "-" + month + "-" + day;
-}
-
-function adDateToRocDate(yyyymmdd) {
- const year = parseInt(yyyymmdd.substring(0, 4), 10) - 1911;
- const month = yyyymmdd.substring(4, 6);
- const day = yyyymmdd.substring(6, 8);
-
- return year + "/" + month + "/" + day;
-}
-
-function parsePrice(value) {
- if (value === null || value === undefined) return NaN;
-
- const s = String(value)
-  .replace(/,/g, "")
-  .replace(/X/g, "")
-  .replace(/x/g, "")
-  .replace(/--/g, "")
-  .trim();
-
- if (s === "" || s === "---" || s === "--") return NaN;
-
- return Number(s);
-}
-
-function sleep(ms) {
- return new Promise(function(resolve) {
-  setTimeout(resolve, ms);
- });
-}
-
-function round2(num) {
- return Math.round(num * 100) / 100;
-}
-
-function getHtml() {
- return `<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
 <title>方天龍 K 線精準判讀全自動系統</title>
+
 <style>
 body {
  background-color: #131722;
@@ -756,7 +235,7 @@ canvas {
  <div class="header">
   <h2 style="color:#fff; margin:0 0 5px 0;">方天龍 K 線精準判讀全自動系統</h2>
   <p style="color:#26a69a; font-weight:bold; margin:0;">
-   ✓ 一份搞定版：真實 K 線資料 + 01～95 規則庫 + Google AI 補充
+   ✓ GitHub Pages 版：真實 K 線資料 + 方天龍 01～95 規則庫 + Google AI 補充
   </p>
  </div>
 
@@ -799,6 +278,13 @@ canvas {
 </div>
 
 <script>
+/*
+  這裡一定要改成你的 Cloudflare Worker 網址。
+  例如：
+  const WORKER_BASE_URL = "https://stock-ai.xxxxxx.workers.dev";
+*/
+const WORKER_BASE_URL = "https://你的-worker網址.workers.dev";
+
 function updateProgress(percent, text) {
  document.getElementById("myBar").style.width = percent + "%";
  document.getElementById("myText").innerText = percent + "%";
@@ -851,8 +337,13 @@ async function executeGrandMasterSearch() {
    return;
   }
 
+  if (WORKER_BASE_URL.indexOf("你的-worker網址") !== -1) {
+   throw new Error("請先把 WORKER_BASE_URL 改成你的 Cloudflare Worker 網址");
+  }
+
   document.getElementById("chartTitle").innerText =
    "技術線圖 台股 " + stockId + " [藍:MA20 | 橘:MA60]";
+
   document.getElementById("reportList").innerHTML = "";
   document.getElementById("summaryBox").innerHTML = "";
 
@@ -903,7 +394,7 @@ async function executeGrandMasterSearch() {
 async function fetchRealStockData(stockId) {
  addLog("▶ 呼叫 Worker 後端抓取真實 K 線：" + stockId);
 
- const response = await fetch("/api/stock?stockId=" + encodeURIComponent(stockId));
+ const response = await fetch(WORKER_BASE_URL + "/api/stock?stockId=" + encodeURIComponent(stockId));
  const json = await response.json();
 
  if (!response.ok || !json.ok) {
@@ -917,7 +408,7 @@ async function fetchRealStockData(stockId) {
 
 async function callGoogleAI(prompt) {
  try {
-  const response = await fetch("/api/google-ai", {
+  const response = await fetch(WORKER_BASE_URL + "/api/google-ai", {
    method: "POST",
    headers: {
     "Content-Type": "application/json"
@@ -1496,5 +987,4 @@ function drawLine(ctx, data, key, getX, getY, color) {
 </script>
 
 </body>
-</html>`;
-}
+</html>
