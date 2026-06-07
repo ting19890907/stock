@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>方天龍 K線精準判讀全自動系統 (1-95單元進度條終極實戰版)</title>
+    <title>方天龍 K線精準判讀全自動系統 (1-95單元進度條終極完美版)</title>
     <style>
         body { background-color: #131722; color: #d1d4dc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; margin: 0; }
         .container { max-width: 1400px; margin: 0 auto; }
@@ -25,12 +25,8 @@
         .desc { font-size: 13px; color: #b2b5be; }
         canvas { background: #161925; border-radius: 4px; display: block; }
         .loading { color: #26a69a; font-weight: bold; margin-left: 10px; }
-        
-        /* 🌟 進度條容器樣式 */
         .progress-container { background: #24293e; border-radius: 20px; width: 100%; height: 24px; margin: 10px 0; overflow: hidden; border: 1px solid #3b415a; position: relative; }
-        /* 🌟 動態進度條本體 */
         .progress-bar { background: linear-gradient(90deg, #2962ff, #00e676); width: 0%; height: 100%; transition: width 0.05s ease; box-shadow: 0 0 10px #00e676; }
-        /* 🌟 百分比文字 */
         .progress-text { position: absolute; width: 100%; text-align: center; font-weight: bold; color: #fff; font-size: 13px; line-height: 24px; top: 0; text-shadow: 1px 1px 2px #000; }
         .log-panel { background: #000; color: #00ff00; font-family: monospace; padding: 15px; border-radius: 8px; margin-top: 15px; max-height: 150px; overflow-y: auto; }
         .log-err { color: #ff0000; font-weight: bold; }
@@ -40,18 +36,19 @@
 
 <div class="container">
     <div class="header">
-        <h2 style="color:#fff; margin:0 0 5px 0;">方天龍 K線精準判讀全自動系統 (1-95終極進度監控版)</h2>
-        <p style="color:#26a69a; font-weight:bold; margin:0;">✓ 全球首創 0% - 100% 量化進度條解碼矩陣 • 徹底擊碎卡死盲區</p>
+        <h2 style="color:#fff; margin:0 0 5px 0;">方天龍 K線精準判讀全自動系統 (1-95終極完美進度版)</h2>
+        <p style="color:#26a69a; font-weight:bold; margin:0;">✓ 按鈕死鎖函數完全對齊修復 • 打開網頁自動一秒強制解碼</p>
     </div>
     
     <div class="search-box">
         <label style="color:#fff; font-weight:bold;">台股個股代號：</label>
         <input type="text" id="stockId" value="2354" placeholder="例如: 2354">
-        <button onclick="fetchAndAnalyzeGrandMaster()">發動 1-95單元 全自動即時解碼</button>
+        <!-- 🌟 核心精密修正：將按鈕 onclick 名稱與下方的執行函數「100% 精密對齊」！ -->
+        <button onclick="executeGrandMasterSearch()">發動 1-95單元 全自動即時解碼</button>
         <span id="stockStatus" class="loading">✓ 核心就緒</span>
     </div>
 
-    <!-- 🌟 進度條顯示面板 -->
+    <!-- 進度條面板 -->
     <div class="card" style="margin-bottom: 20px; padding: 15px 22px;">
         <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:5px;">
             <span>大師矩陣核心計算進度條</span>
@@ -73,13 +70,13 @@
         <!-- 右側：綜合判讀報告 -->
         <div class="card">
             <div class="title">AI 1-95單元 大師級多空量化報告</div>
-            <div class="signal-list" id="reportList">請點擊藍色按鈕開始計算。</div>
+            <div class="signal-list" id="reportList">請點擊藍色按鈕或等待系統自動載入。</div>
         </div>
     </div>
 
     <!-- 即時狀態日誌 -->
     <div class="card" style="margin-top:20px;">
-        <div class="title" style="border-left-color: #00ff00;">AI 運作步驟日誌</div>
+        <div class="title" style="border-left-color: #00ff00;">AI 運作步驟日誌監控面板</div>
         <div id="debugLog" class="log-panel">等待網頁初始化完畢...</div>
     </div>
 </div>
@@ -100,12 +97,14 @@ function addLog(msg, isError = false) {
     logBox.scrollTop = logBox.scrollHeight;
 }
 
+// 🌟 自動開關：網頁元件完全加載完畢後，不需點擊，自動在0.1秒內強制執行第一次解碼！
 document.addEventListener("DOMContentLoaded", function() {
     addLog("✓ 系統初始化成功。網頁架構完全就緒。");
-    updateProgress(0, "網頁載入完畢，請點擊按鈕或更換代號開始。");
+    updateProgress(0, "加載完畢，即將自動啟動矩陣核心運算...");
+    setTimeout(executeGrandMasterSearch, 150);
 });
 
-function fetchAndAnalyzeGrandMaster() {
+function executeGrandMasterSearch() {
     try {
         updateProgress(5, "正在擷取個股代號中...");
         addLog("▶ 發動大師矩陣查詢流程...");
@@ -163,7 +162,6 @@ function fetchAndAnalyzeGrandMaster() {
         updateProgress(50, "均線數據封裝完成，進入 1-95 單元時序拆解流程...");
         addLog("✓ 趨勢均線計算完畢。");
 
-        // 🌟 採用分步定時器，實現看得到進度條在跑的完美動畫，絕不死鎖
         let currentIdx = 20;
         const totalLength = rawData.length;
         const reportList = document.getElementById("reportList");
@@ -173,11 +171,10 @@ function fetchAndAnalyzeGrandMaster() {
         
         function stepAnalysis() {
             if (currentIdx >= totalLength) {
-                // 比對完畢，發動繪圖
                 updateProgress(90, "型態交叉比對大功告成，正在喚醒畫布引擎...");
                 reportList.innerHTML += `
                     <div class="item master">
-                        <div class="date">2026年動態大數據矩陣</div>
+                        <div class="date">大數據動態整合分析</div>
                         <div class="name">🔮 大師綜合位階提示：位置決定K線生死</div>
                         <div class="desc">個股代號 ${stockId} 目前多空比對完畢。依方天龍老師全書精髓：個股多頭時，MA20生命線及MA60季線為強力護航支撐；若高檔偏離均線且觸發『烏雲罩頂（單元81）』，代表大戶出貨，應見好就收，切勿盲目加碼攤平。</div>
                     </div>`;
@@ -187,7 +184,6 @@ function fetchAndAnalyzeGrandMaster() {
                 return;
             }
 
-            // 計算當前百分比
             let pct = Math.floor((currentIdx / totalLength) * 40) + 50;
             updateProgress(pct, `正在解碼第 ${currentIdx} 交易日多空破綻...`);
 
