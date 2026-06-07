@@ -2,8 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>方天龍 K 線精準判讀全自動系統</title>
-
+<title>方天龍 K 線精準判讀全自動系統 V2</title>
 <style>
 body {
  background-color: #131722;
@@ -12,19 +11,16 @@ body {
  padding: 20px;
  margin: 0;
 }
-
 .container {
- max-width: 1400px;
+ max-width: 1450px;
  margin: 0 auto;
 }
-
 .header {
  background: #1c2030;
  padding: 20px;
  border-radius: 8px;
  margin-bottom: 20px;
 }
-
 .search-box {
  background: #1c2030;
  padding: 18px;
@@ -35,7 +31,6 @@ body {
  align-items: center;
  flex-wrap: wrap;
 }
-
 input {
  background: #24293e;
  border: 1px solid #3b415a;
@@ -47,7 +42,6 @@ input {
  text-align: center;
  font-weight: bold;
 }
-
 button {
  background: #2962ff;
  color: #fff;
@@ -58,30 +52,25 @@ button {
  font-weight: bold;
  font-size: 14px;
 }
-
 button:hover {
  background: #1a50dd;
 }
-
 .layout {
  display: grid;
- grid-template-columns: 1.6fr 1fr;
+ grid-template-columns: 1.55fr 1fr;
  gap: 20px;
 }
-
 @media (max-width: 1050px) {
  .layout {
   grid-template-columns: 1fr;
  }
 }
-
 .card {
  background-color: #1c2030;
  border-radius: 8px;
  padding: 22px;
  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
 }
-
 .title {
  font-size: 18px;
  font-weight: bold;
@@ -90,13 +79,11 @@ button:hover {
  border-left: 5px solid #2962ff;
  padding-left: 12px;
 }
-
 .signal-list {
- max-height: 550px;
+ max-height: 590px;
  overflow-y: auto;
  padding-right: 5px;
 }
-
 .item {
  background: #24293e;
  padding: 15px;
@@ -105,37 +92,39 @@ button:hover {
  border-left: 5px solid #787b86;
  line-height: 1.6;
 }
-
 .item.buy {
  border-left-color: #ef5350;
 }
-
 .item.sell {
  border-left-color: #26a69a;
 }
-
 .item.master {
  border-left-color: #ff9100;
 }
-
 .date {
  font-size: 12px;
  color: #9aa0b5;
  font-weight: bold;
 }
-
 .name {
  font-weight: bold;
  color: #fff;
  margin: 4px 0;
  font-size: 15px;
 }
-
 .desc {
  font-size: 13px;
  color: #c2c5d0;
 }
-
+.tag {
+ display:inline-block;
+ padding:2px 6px;
+ margin-right:4px;
+ border-radius:4px;
+ background:#111827;
+ color:#a9b7ff;
+ font-size:11px;
+}
 canvas {
  background: #161925;
  border-radius: 4px;
@@ -143,12 +132,10 @@ canvas {
  width: 100%;
  max-width: 100%;
 }
-
 .loading {
  color: #26a69a;
  font-weight: bold;
 }
-
 .progress-container {
  background: #24293e;
  border-radius: 20px;
@@ -159,14 +146,12 @@ canvas {
  border: 1px solid #3b415a;
  position: relative;
 }
-
 .progress-bar {
  background: linear-gradient(90deg, #2962ff, #00e676);
  width: 0%;
  height: 100%;
  transition: width 0.15s ease;
 }
-
 .progress-text {
  position: absolute;
  width: 100%;
@@ -177,7 +162,6 @@ canvas {
  line-height: 24px;
  top: 0;
 }
-
 .log-panel {
  background: #000;
  color: #00ff00;
@@ -189,66 +173,64 @@ canvas {
  overflow-y: auto;
  font-size: 12px;
 }
-
 .log-err {
  color: #ff3333;
  font-weight: bold;
 }
-
 .summary-box {
  display: grid;
  grid-template-columns: repeat(3, 1fr);
  gap: 12px;
  margin-bottom: 15px;
 }
-
 @media (max-width: 800px) {
  .summary-box {
   grid-template-columns: 1fr;
  }
 }
-
 .summary-card {
  background: #24293e;
  border-radius: 8px;
  padding: 12px;
  border-left: 5px solid #2962ff;
 }
-
 .summary-card .label {
  color: #9aa0b5;
  font-size: 12px;
 }
-
 .summary-card .value {
  color: #fff;
  font-size: 22px;
  font-weight: bold;
 }
+.note {
+ color:#9aa0b5;
+ font-size:12px;
+ margin-top:8px;
+}
 </style>
 </head>
 
 <body>
-
 <div class="container">
 
  <div class="header">
-  <h2 style="color:#fff; margin:0 0 5px 0;">方天龍 K 線精準判讀全自動系統</h2>
+  <h2 style="color:#fff; margin:0 0 5px 0;">方天龍 K 線精準判讀全自動系統 V2</h2>
   <p style="color:#26a69a; font-weight:bold; margin:0;">
-   ✓ GitHub Pages 版：真實 K 線資料 + 方天龍 01～95 規則庫
+   ✓ GitHub Pages 版：真實 K 線資料 + 方天龍 01～95 規則庫 V2 + 量價 / 趨勢 / 位置加權
   </p>
  </div>
 
  <div class="search-box">
   <label style="color:#fff; font-weight:bold;">台股個股代號：</label>
   <input type="text" id="stockId" value="2330" placeholder="例如: 3234">
-  <button type="button" onclick="executeGrandMasterSearch()">發動 1-95單元 全自動即時解碼</button>
+  <button type="button" onclick="executeGrandMasterSearch()">發動 V2 全自動即時解碼</button>
   <span id="stockStatus" class="loading">✓ 核心已就緒</span>
  </div>
 
  <div class="card" style="margin-bottom: 20px; padding: 15px 22px;">
   <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:5px;">
-   <span>大師矩陣核心計算進度條</span>
+   <span>V2 矩陣核心計算進度條</span>
    <span id="stepStatus" style="color:#00e676;">等待發動指令...</span>
   </div>
   <div class="progress-container">
@@ -260,11 +242,11 @@ canvas {
  <div class="layout">
   <div class="card">
    <div class="title" id="chartTitle">大師級技術線圖</div>
-   <canvas id="stockCanvas" width="800" height="480"></canvas>
+   <canvas id="stockCanvas" width="850" height="500"></canvas>
   </div>
 
   <div class="card">
-   <div class="title">AI 多空量化報告</div>
+   <div class="title">V2 多空量化報告</div>
    <div id="summaryBox" class="summary-box"></div>
    <div class="signal-list" id="reportList">請點擊藍色按鈕開始分析。</div>
   </div>
@@ -290,11 +272,7 @@ function addLog(msg, isError) {
  const logBox = document.getElementById("debugLog");
  const time = new Date().toLocaleTimeString();
  const div = document.createElement("div");
-
- if (isError) {
-  div.className = "log-err";
- }
-
+ if (isError) div.className = "log-err";
  div.textContent = "[" + time + "] " + msg;
  logBox.appendChild(div);
  logBox.scrollTop = logBox.scrollHeight;
@@ -304,7 +282,6 @@ document.addEventListener("DOMContentLoaded", function() {
  document.getElementById("debugLog").innerHTML = "";
  addLog("✓ 網頁已正常載入");
  updateProgress(0, "初始化完成");
-
  setTimeout(function() {
   executeGrandMasterSearch();
  }, 500);
@@ -325,26 +302,25 @@ async function executeGrandMasterSearch() {
 
   document.getElementById("chartTitle").innerText =
    "技術線圖 台股 " + stockId + " [藍:MA20 | 橘:MA60]";
-
   document.getElementById("reportList").innerHTML = "";
   document.getElementById("summaryBox").innerHTML = "";
 
-  updateProgress(20, "正在抓取真實歷史 K 線資料...");
+  updateProgress(20, "正在透過 Worker 抓取真實 K 線資料...");
   addLog("✓ 鎖定股票代號：" + stockId);
 
   const data = await fetchRealStockData(stockId);
 
-  updateProgress(45, "正在計算 MA5 / MA10 / MA20 / MA60...");
-  calcMA(data);
+  updateProgress(42, "正在計算 MA / 量能 / 位置 / 趨勢...");
+  calcIndicators(data);
 
-  updateProgress(65, "正在進行方天龍 01～95 規則庫判讀...");
-  runAnalysis(data, stockId);
+  updateProgress(68, "正在進行方天龍 01～95 V2 規則判讀...");
+  runAnalysisV2(data, stockId);
 
-  updateProgress(85, "正在繪製真實 K 線圖...");
+  updateProgress(88, "正在繪製真實 K 線圖...");
   drawChart(data);
 
   updateProgress(100, "分析完成");
-  addLog("✓ 分析完成");
+  addLog("✓ V2 分析完成");
 
  } catch (err) {
   addLog("❌ 錯誤：" + err.message, true);
@@ -363,33 +339,43 @@ async function fetchRealStockData(stockId) {
   throw new Error(json.error || "後端抓取失敗");
  }
 
- addLog("✓ 真實 K 線資料成功，來源：" + json.source + "，共 " + json.data.length + " 筆");
+ if (!json.data || json.data.length < 60) {
+  throw new Error("K 線資料不足，至少需要 60 筆以上");
+ }
 
+ addLog("✓ 真實 K 線資料成功，來源：" + json.source + "，共 " + json.data.length + " 筆");
  return json.data;
 }
 
-function calcMA(data) {
+function calcIndicators(data) {
  for (let i = 0; i < data.length; i++) {
-  data[i].ma5 = averageClose(data, i, 5);
-  data[i].ma10 = averageClose(data, i, 10);
-  data[i].ma20 = averageClose(data, i, 20);
-  data[i].ma60 = averageClose(data, i, 60);
-  data[i].vol5 = averageVolume(data, i, 5);
+  data[i].ma5 = avgClose(data, i, 5);
+  data[i].ma10 = avgClose(data, i, 10);
+  data[i].ma20 = avgClose(data, i, 20);
+  data[i].ma60 = avgClose(data, i, 60);
+  data[i].vol5 = avgVol(data, i, 5);
+  data[i].vol20 = avgVol(data, i, 20);
+
+  if (i > 0) {
+   data[i].chgPct = ((data[i].close - data[i - 1].close) / data[i - 1].close) * 100;
+  } else {
+   data[i].chgPct = 0;
+  }
  }
- addLog("✓ 均線計算完成");
+ addLog("✓ 指標計算完成：MA5/10/20/60、VOL5/20、漲跌幅");
 }
 
-function averageClose(data, i, n) {
+function avgClose(data, i, n) {
  let sum = 0;
  let count = 0;
  for (let j = Math.max(0, i - n + 1); j <= i; j++) {
-  sum += data[j].close;
+  sum += Number(data[j].close);
   count++;
  }
  return sum / count;
 }
 
-function averageVolume(data, i, n) {
+function avgVol(data, i, n) {
  let sum = 0;
  let count = 0;
  for (let j = Math.max(0, i - n + 1); j <= i; j++) {
@@ -399,138 +385,126 @@ function averageVolume(data, i, n) {
  return count > 0 ? sum / count : 0;
 }
 
-function r(id, name, bias, type, score, msg) {
- return {
-  id: id,
-  name: name,
-  bias: bias,
-  type: type,
-  score: score,
-  msg: msg
- };
+/* ================================
+   方天龍 01～95 規則庫 V2
+   說明：整理成程式判斷用語，不逐字複製書本原文
+================================ */
+
+function r(id, name, bias, score, type, msg) {
+ return { id, name, bias, score, type, msg };
 }
 
-const FTL_RULES = [
- r(1, "缺口為標識號", "neutral", "gap", 8, "缺口代表籌碼與情緒變化，需觀察是否快速回補。"),
- r(2, "三缺口", "neutral", "gap_series", 10, "連續缺口代表行情加速，但第三缺口後需防過熱。"),
- r(3, "下跌三缺口", "bear", "down_gap_series", -18, "連續下跌缺口代表賣壓急促。"),
- r(4, "多方跳蛙缺口", "bull", "up_gap", 15, "向上跳空並守住缺口，代表多方主動進攻。"),
- r(5, "多方中繼缺口", "bull", "up_gap_continue", 14, "上漲途中缺口未補，偏向多方中繼。"),
- r(6, "多方初動缺口", "bull", "up_gap_start", 16, "低檔整理後向上跳空，容易形成起漲訊號。"),
- r(7, "空方跳蛙缺口", "bear", "down_gap", -15, "向下跳空且無法回補，代表空方力道強。"),
- r(8, "空方中繼缺口", "bear", "down_gap_continue", -14, "下跌途中跳空，若反彈無力，空頭延續。"),
- r(9, "島狀反轉", "neutral", "island_reversal", 18, "跳空形成孤島後再反向跳空，常見急轉。"),
- r(10, "漲跌空間觀察", "neutral", "range_projection", 8, "利用缺口、前高前低與波段位置推估空間。"),
- r(11, "大陽線與大陰線", "neutral", "long_candle", 12, "大紅或大黑 K 代表當日力道明顯。"),
- r(12, "中繼線", "neutral", "continuation", 8, "趨勢途中整理，未破關鍵位時可能延續原方向。"),
- r(13, "小紅小黑", "neutral", "small_body", 4, "小實體代表多空暫時平衡，等待確認。"),
- r(14, "五種單一K線", "neutral", "single_k", 5, "單根 K 線需觀察實體、影線與位置。"),
- r(15, "五種單一K線延伸", "neutral", "single_k", 5, "單根 K 線不可脫離趨勢位置判斷。"),
- r(16, "單一K線變化", "neutral", "single_k_group", 5, "影線與實體組合反映多空心理。"),
- r(17, "十字線", "neutral", "doji", 8, "十字線代表多空拉鋸，需下一根確認。"),
- r(18, "吊人線", "bear", "hanging_man", -14, "高檔長下影小實體，需防轉弱。"),
- r(19, "低檔十字線", "bull", "low_doji", 12, "低檔十字代表殺盤可能鈍化。"),
- r(20, "上吊十字線", "bear", "high_doji", -12, "高檔十字或吊線，轉弱風險提高。"),
- r(21, "小紅小黑組合", "neutral", "small_body_group", 5, "小 K 連續出現代表盤整或蓄勢。"),
- r(22, "盤中十字", "neutral", "intraday_doji", 5, "盤中轉折需等待收盤確認。"),
- r(23, "一字線", "neutral", "flat_line", 8, "一字線代表極端籌碼鎖定，需看打開方向。"),
- r(24, "吊人線", "bear", "hanging_man", -14, "高檔吊人線代表追價風險升高。"),
- r(25, "錘子線", "bull", "hammer", 15, "低檔錘子線代表下方承接出現。"),
- r(26, "流星線", "bear", "shooting_star", -15, "高檔流星線代表上攻遇壓。"),
- r(27, "倒錘線", "bull", "inverted_hammer", 12, "低檔倒錘線代表試攻，需後續確認。"),
- r(28, "紡錘線", "neutral", "spinning_top", 6, "紡錘線代表多空猶豫。"),
- r(29, "K線與生命線", "neutral", "ma_life_line", 10, "站上或跌破 MA20 會影響短線方向。"),
- r(30, "多空力道位置", "neutral", "position_power", 10, "型態在高檔、低檔、盤整區意義不同。"),
- r(31, "轉折點", "neutral", "turning_point", 12, "連續趨勢後出現反向 K 線，注意轉折。"),
- r(32, "趨勢判斷", "neutral", "trend", 10, "趨勢需看高低點、均線與 K 線排列。"),
- r(33, "開口朝上", "bull", "ma_open_up", 14, "均線開口朝上且股價站穩，偏多。"),
- r(34, "波浪上架", "bull", "wave_up", 12, "回檔不破前低後再轉強，多方結構尚在。"),
- r(35, "前面路不通", "bear", "resistance_block", -12, "上方壓力多次無法突破，追高風險增加。"),
- r(36, "量是燃料", "neutral", "volume_power", 12, "價漲需量能支持，無量上攻容易失敗。"),
- r(37, "技術指標配合", "neutral", "indicator_confirm", 8, "K 線訊號與指標同向時可信度提高。"),
- r(38, "3分K盤中觀察", "neutral", "intraday_k", 6, "小週期只作輔助，仍需日 K 確認。"),
- r(39, "日K續破", "bear", "daily_break", -12, "跌破關鍵 K 線低點後，空方力道提高。"),
- r(40, "箱型突破", "neutral", "box_break", 14, "突破箱型上緣偏多，跌破下緣偏空。"),
- r(41, "均線扣抵", "neutral", "ma_deduction", 10, "扣抵高低會影響均線方向。"),
- r(42, "趨勢交易", "neutral", "trend_trade", 10, "順勢操作勝率較高。"),
- r(43, "洗盤", "neutral", "shakeout", 10, "強勢股整理洗盤後若再轉強，可能延續趨勢。"),
- r(44, "突破後回測", "bull", "break_retest", 12, "突破後回測不破，屬健康多方結構。"),
- r(45, "紅三兵", "bull", "three_white_soldiers", 18, "連續紅 K 向上推進，多方攻擊力強。"),
- r(46, "五連陽", "bull", "five_up", 16, "連續上漲代表多方強勢，但需防過熱。"),
- r(47, "一柱擎天", "bear", "one_big_down", -18, "突發長黑或急殺，空方急速出手。"),
- r(48, "雙日反轉", "neutral", "two_day_reversal", 15, "兩日急速翻轉，常見洗盤或轉折。"),
- r(49, "空頭吞噬", "bear", "bearish_engulfing", -20, "黑 K 吞噬前方紅 K，賣壓轉強。"),
- r(50, "包絡線", "neutral", "engulfing", 16, "包絡需看方向與位置，高檔偏空、低檔偏多。"),
- r(51, "底部中繼", "bull", "bottom_continue", 12, "低檔整理後轉強，可能是底部中繼。"),
- r(52, "內困三紅", "bull", "inside_three_up", 15, "紅 K 逐步墊高且不破低點，多方累積。"),
- r(53, "內困三紅反攻", "bull", "inside_three_up", 15, "整理中三紅轉強，代表反攻力道。"),
- r(54, "母子晨星", "bull", "morning_star", 18, "低檔晨星結構，反轉機率提高。"),
- r(55, "下跌包圍", "bear", "bearish_engulfing", -18, "黑 K 包圍前方 K 線，空方壓力增加。"),
- r(56, "破線初形", "bear", "line_break", -14, "跌破關鍵線後無法站回，偏空。"),
- r(57, "三線反撲", "bull", "three_line_strike", 16, "連續弱勢後突然反撲，需觀察是否站上壓力。"),
- r(58, "破線處理", "bear", "line_break", -14, "跌破線後先看反抽是否站回。"),
- r(59, "南方三星", "bull", "southern_star", 16, "低檔連續縮小 K 線，跌勢可能鈍化。"),
- r(60, "反鎚擊頂", "bear", "inverted_hammer_top", -16, "高檔反鎚形態容易成為轉弱警訊。"),
- r(61, "V型反轉", "bull", "v_reversal", 18, "急跌後快速收復失土，多方反擊力強。"),
- r(62, "地板價", "bull", "floor_price", 14, "低檔多次守住同一區域，容易形成支撐。"),
- r(63, "三線反紅", "bull", "three_line_red", 15, "多根弱勢後轉紅，空方力道可能衰退。"),
- r(64, "空方壓迫末段", "bull", "bear_end_pressure", 12, "空方壓制但不再破低，可能接近轉折。"),
- r(65, "拉回加碼點", "bull", "pullback_buy", 15, "上升趨勢中拉回守線，是多方續攻觀察點。"),
- r(66, "中繼站第九根天線", "bull", "long_trend_continue", 16, "強勢股中繼整理後再攻，屬長線多頭延伸。"),
- r(67, "起漲階梯", "bull", "stair_up", 18, "低點墊高、高點推升，多方穩健前進。"),
- r(68, "三日洗盤", "neutral", "three_day_wash", 12, "強勢股短線洗盤，未破趨勢線仍可觀察。"),
- r(69, "多頭反攻", "bull", "bull_counterattack", 18, "多頭反攻訊號出現，若量能配合，偏多。"),
- r(70, "三河床", "bull", "three_river", 16, "低檔連續止跌結構，代表多方築底。"),
- r(71, "多頭孵蛋線", "bull", "bull_harami", 16, "母子線低檔出現，隔日轉強則反彈機率提高。"),
- r(72, "空頭堡壘", "bear", "bear_fortress", -18, "高檔整理後轉弱，容易成為空方起點。"),
- r(73, "空方砲", "bear", "bear_cannon", -18, "空方連續攻擊，行情每況愈下。"),
- r(74, "空頭三星", "bear", "three_star_bear", -16, "高檔多次猶豫後轉弱，空方壓力升高。"),
- r(75, "三度到高點", "bear", "triple_top", -18, "三次挑戰高點不過，容易轉弱。"),
- r(76, "一瀉千里", "bear", "cliff_drop", -25, "連續急漲後打開轉弱，需防快速回落。"),
- r(77, "雙日反轉", "bear", "two_day_reversal", -16, "兩日內由強轉弱，常見高檔洗盤或出貨。"),
- r(78, "空頭吞噬", "bear", "bearish_engulfing", -20, "大黑 K 吞噬前方多方，偏空。"),
- r(79, "空方母子", "bear", "bear_harami", -16, "高檔母子線後若轉弱，代表多方退縮。"),
- r(80, "空方母子十字", "bear", "bear_harami_doji", -18, "高檔母子十字線，若跌破低點，空方確認。"),
- r(81, "烏雲蓋頂", "bear", "dark_cloud", -20, "高檔紅 K 後黑 K 壓回，代表多方受阻。"),
- r(82, "夜星", "bear", "evening_star", -20, "高檔夜星結構代表轉弱風險提高。"),
- r(83, "夜空雙星", "bear", "double_evening_star", -22, "連續高檔星線後轉弱，空方訊號更強。"),
- r(84, "三烏鴉", "bear", "three_black_crows", -24, "連續黑 K 下壓，空方主導。"),
- r(85, "大敵當前", "bear", "major_resistance", -18, "上方壓力明顯且攻擊失敗，需防回落。"),
- r(86, "流星線", "bear", "shooting_star", -16, "高檔長上影代表上攻遇壓。"),
- r(87, "吊人線", "bear", "hanging_man", -16, "高檔吊人線若隔日跌破，偏空。"),
- r(88, "空頭棄嬰", "bear", "abandoned_baby_bear", -25, "高檔跳空星線後反向跳空，屬強烈轉弱訊號。"),
- r(89, "宵三紅", "bear", "evening_three_red", -18, "多方末端勉強上攻，若後續轉黑，偏空。"),
- r(90, "雙鴉跳空", "bear", "two_crows_gap", -20, "跳空後連續黑 K 壓回，代表上攻失敗。"),
- r(91, "空頭遭遇", "bear", "bearish_meeting", -18, "高檔平盤附近遭遇賣壓，多方攻勢受阻。"),
- r(92, "劍空包容線", "bear", "bear_engulf_variant", -20, "高檔包容線轉弱，空方接手。"),
- r(93, "走跌停勢", "bear", "limit_down_like", -24, "連續急跌或接近跌停走勢，需防慣性下殺。"),
- r(94, "下跌三法", "bear", "falling_three_methods", -22, "下跌中繼整理後再跌，空方延續。"),
- r(95, "空頭三明治", "bear", "bear_sandwich", -22, "黑紅黑結構若在跌勢或反彈末端，代表反彈失敗。")
-];
+const RULES = {
+ 1:r(1,"缺口為標識號","neutral",8,"gap","缺口代表籌碼與情緒改變，重點看是否快速回補。"),
+ 2:r(2,"三缺口","neutral",10,"gap_series","連續缺口代表行情加速，但也要防過熱。"),
+ 3:r(3,"下跌三缺口","bear",-18,"down_gap_series","連續向下缺口代表賣壓急促。"),
+ 4:r(4,"多方跳蛙缺口","bull",15,"up_gap","向上跳空並守住缺口，偏多。"),
+ 5:r(5,"多方中繼缺口","bull",14,"up_gap_continue","上漲途中缺口未補，偏多中繼。"),
+ 6:r(6,"多方初動缺口","bull",16,"up_gap_start","低檔整理後向上跳空，可能是起漲。"),
+ 7:r(7,"空方跳蛙缺口","bear",-15,"down_gap","向下跳空且無法回補，偏空。"),
+ 8:r(8,"空方中繼缺口","bear",-14,"down_gap_continue","下跌途中跳空，空頭延續。"),
+ 9:r(9,"島狀反轉","neutral",18,"island","跳空形成孤島再反向跳空，常見急轉。"),
+ 10:r(10,"漲跌空間觀察","neutral",8,"range","以缺口、前高前低推估空間。"),
+ 11:r(11,"大陽線與大陰線","neutral",12,"long_candle","大紅或大黑 K 代表當日力道明顯。"),
+ 12:r(12,"中繼線","neutral",8,"continue","趨勢途中整理未破關鍵位置，可能延續。"),
+ 13:r(13,"小紅小黑","neutral",4,"small_body","小實體代表多空暫時平衡。"),
+ 14:r(14,"單一K線","neutral",5,"single","單根 K 需看影線、實體與位置。"),
+ 15:r(15,"單一K線延伸","neutral",5,"single_ext","單根 K 不可脫離趨勢判斷。"),
+ 16:r(16,"單一K線變化","neutral",5,"single_group","影線與實體反映多空心理。"),
+ 17:r(17,"十字線","neutral",8,"doji","十字代表多空拉鋸，需下一根確認。"),
+ 18:r(18,"吊人線","bear",-14,"hanging","高檔長下影小實體，需防轉弱。"),
+ 19:r(19,"低檔十字線","bull",12,"low_doji","低檔十字代表殺盤可能鈍化。"),
+ 20:r(20,"上吊十字線","bear",-12,"high_doji","高檔十字轉弱風險增加。"),
+ 21:r(21,"小紅小黑組合","neutral",5,"small_group","連續小 K 代表盤整或蓄勢。"),
+ 22:r(22,"盤中十字","neutral",5,"intraday_doji","盤中轉折需日 K 確認。"),
+ 23:r(23,"一字線","neutral",8,"flat","極端籌碼鎖定，需看打開方向。"),
+ 24:r(24,"吊人線","bear",-14,"hanging2","高檔吊人線代表追價風險。"),
+ 25:r(25,"錘子線","bull",15,"hammer","低檔長下影代表下方承接。"),
+ 26:r(26,"流星線","bear",-15,"shooting","高檔長上影代表上攻遇壓。"),
+ 27:r(27,"倒錘線","bull",12,"inverted_hammer","低檔倒錘代表試攻，需確認。"),
+ 28:r(28,"紡錘線","neutral",6,"spinning","多空猶豫，重點看位置。"),
+ 29:r(29,"K線與生命線","neutral",10,"ma_life","站上或跌破 MA20 影響短線方向。"),
+ 30:r(30,"多空力道位置","neutral",10,"position","高檔、低檔、盤整區意義不同。"),
+ 31:r(31,"轉折點","neutral",12,"turn","連續趨勢後反向 K，注意轉折。"),
+ 32:r(32,"趨勢判斷","neutral",10,"trend","看高低點、均線與 K 線排列。"),
+ 33:r(33,"開口朝上","bull",14,"ma_open_up","均線開口朝上且股價站穩，偏多。"),
+ 34:r(34,"波浪上架","bull",12,"wave_up","回檔不破前低再轉強，多方結構尚在。"),
+ 35:r(35,"前面路不通","bear",-12,"resistance","上方壓力多次無法突破，追高風險高。"),
+ 36:r(36,"量是燃料","neutral",12,"volume","價漲需量能支持，無量上攻容易失敗。"),
+ 37:r(37,"技術指標配合","neutral",8,"indicator","K 線與均線量能同向，可信度提高。"),
+ 38:r(38,"3分K盤中觀察","neutral",6,"intraday","短週期只作輔助，仍以日 K 為主。"),
+ 39:r(39,"日K續破","bear",-12,"daily_break","跌破關鍵 K 低點，空方力道提高。"),
+ 40:r(40,"箱型突破","neutral",14,"box","突破箱型偏多，跌破箱型偏空。"),
+ 41:r(41,"均線扣抵","neutral",10,"deduct","扣抵高低影響均線方向。"),
+ 42:r(42,"趨勢交易","neutral",10,"trend_trade","順勢操作勝率較高。"),
+ 43:r(43,"洗盤","neutral",10,"shake","強勢股整理後再轉強，可能續攻。"),
+ 44:r(44,"突破後回測","bull",12,"break_retest","突破後回測不破，屬健康多方結構。"),
+ 45:r(45,"紅三兵","bull",18,"three_red","連續紅 K 推進，多方攻擊力強。"),
+ 46:r(46,"五連陽","bull",16,"five_up","連續上漲代表強勢，但需防過熱。"),
+ 47:r(47,"一柱擎天","bear",-18,"big_down","突發長黑或急殺，空方急速出手。"),
+ 48:r(48,"雙日反轉","neutral",15,"two_reversal","兩日急速翻轉，常見洗盤或轉折。"),
+ 49:r(49,"空頭吞噬","bear",-20,"bear_engulf","黑 K 吞噬前紅 K，賣壓轉強。"),
+ 50:r(50,"包絡線","neutral",16,"engulf","包絡需看方向與位置，高檔偏空低檔偏多。"),
+ 51:r(51,"底部中繼","bull",12,"bottom_continue","低檔整理後轉強，可能底部中繼。"),
+ 52:r(52,"內困三紅","bull",15,"inside_three_up","紅 K 逐步墊高且不破低點。"),
+ 53:r(53,"內困三紅反攻","bull",15,"inside_three_attack","整理中三紅轉強，代表反攻。"),
+ 54:r(54,"母子晨星","bull",18,"morning_star","低檔晨星結構，反轉機率提高。"),
+ 55:r(55,"下跌包圍","bear",-18,"down_engulf","黑 K 包圍前方 K，空方壓力增加。"),
+ 56:r(56,"破線初形","bear",-14,"line_break_start","跌破關鍵線後無法站回，偏空。"),
+ 57:r(57,"三線反撲","bull",16,"three_line_strike","連續弱勢後突然反撲，需看壓力。"),
+ 58:r(58,"破線處理","bear",-14,"line_break","跌破線後看反抽能否站回。"),
+ 59:r(59,"南方三星","bull",16,"southern_star","低檔連續縮小 K，跌勢可能鈍化。"),
+ 60:r(60,"反鎚擊頂","bear",-16,"top_inverted","高檔反鎚形態容易轉弱。"),
+ 61:r(61,"V型反轉","bull",18,"v_reversal","急跌後快速收復，多方反擊強。"),
+ 62:r(62,"地板價","bull",14,"floor","低檔多次守住同區域，形成支撐。"),
+ 63:r(63,"三線反紅","bull",15,"three_red_turn","多根弱勢後轉紅，空方力道衰退。"),
+ 64:r(64,"空方壓迫末段","bull",12,"bear_end","空方壓制但不破低，可能接近轉折。"),
+ 65:r(65,"拉回加碼點","bull",15,"pullback","上升趨勢拉回守線，續攻觀察。"),
+ 66:r(66,"中繼站第九根天線","bull",16,"long_continue","強勢股中繼整理後再攻。"),
+ 67:r(67,"起漲階梯","bull",18,"stair","低點墊高、高點推升，多方穩健。"),
+ 68:r(68,"三日洗盤","neutral",12,"three_wash","強勢股短線洗盤，未破線仍可觀察。"),
+ 69:r(69,"多頭反攻","bull",18,"bull_counter","多頭反攻訊號，量能配合更佳。"),
+ 70:r(70,"三河床","bull",16,"three_river","低檔連續止跌，代表築底。"),
+ 71:r(71,"多頭孵蛋線","bull",16,"bull_harami","低檔母子線轉強，反彈機率提高。"),
+ 72:r(72,"空頭堡壘","bear",-18,"bear_fort","高檔整理後轉弱，空方起點。"),
+ 73:r(73,"空方砲","bear",-18,"bear_cannon","空方連續攻擊，行情轉弱。"),
+ 74:r(74,"空頭三星","bear",-16,"bear_stars","高檔猶豫後轉弱，空方壓力升高。"),
+ 75:r(75,"三度到高點","bear",-18,"triple_top","三次挑戰高點不過，容易轉弱。"),
+ 76:r(76,"一瀉千里","bear",-25,"cliff","急漲後打開轉弱，防快速回落。"),
+ 77:r(77,"雙日反轉","bear",-16,"two_day_bear","兩日由強轉弱，可能洗盤或出貨。"),
+ 78:r(78,"空頭吞噬","bear",-20,"bear_engulf2","大黑 K 吞噬多方，偏空。"),
+ 79:r(79,"空方母子","bear",-16,"bear_harami","高檔母子線後轉弱，多方退縮。"),
+ 80:r(80,"空方母子十字","bear",-18,"bear_harami_doji","高檔母子十字跌破低點，空方確認。"),
+ 81:r(81,"烏雲蓋頂","bear",-20,"dark_cloud","高檔紅 K 後黑 K 壓回，多方受阻。"),
+ 82:r(82,"夜星","bear",-20,"evening_star","高檔夜星結構，轉弱風險提高。"),
+ 83:r(83,"夜空雙星","bear",-22,"double_evening","連續高檔星線後轉弱，空方更強。"),
+ 84:r(84,"三烏鴉","bear",-24,"three_crows","連續黑 K 下壓，空方主導。"),
+ 85:r(85,"大敵當前","bear",-18,"major_resistance","上方壓力明顯且攻擊失敗。"),
+ 86:r(86,"流星線","bear",-16,"shooting2","高檔長上影，上攻遇壓。"),
+ 87:r(87,"吊人線","bear",-16,"hanging3","高檔吊人線跌破，偏空。"),
+ 88:r(88,"空頭棄嬰","bear",-25,"abandoned_bear","高檔跳空星線後反向跳空，強烈轉弱。"),
+ 89:r(89,"宵三紅","bear",-18,"evening_three_red","多方末端勉強上攻，後續轉黑偏空。"),
+ 90:r(90,"雙鴉跳空","bear",-20,"two_crows","跳空後連續黑 K 壓回，上攻失敗。"),
+ 91:r(91,"空頭遭遇","bear",-18,"bear_meeting","高檔平盤附近遭遇賣壓。"),
+ 92:r(92,"劍空包容線","bear",-20,"bear_variant","高檔包容轉弱，空方接手。"),
+ 93:r(93,"走跌停勢","bear",-24,"limit_down","連續急跌或接近跌停，防慣性下殺。"),
+ 94:r(94,"下跌三法","bear",-22,"falling_three","下跌中繼整理後再跌，空方延續。"),
+ 95:r(95,"空頭三明治","bear",-22,"bear_sandwich","黑紅黑若在跌勢或反彈末端，反彈失敗。")
+};
 
-function runAnalysis(data, stockId) {
+function runAnalysisV2(data, stockId) {
  const reportList = document.getElementById("reportList");
  reportList.innerHTML = "";
 
- const signals = analyzeFangTianLongV1(data);
- let bullScore = 0;
- let bearScore = 0;
+ const signals = detectFTLV2(data);
+ const final = buildFinalScore(signals, data);
 
- for (let i = 0; i < signals.length; i++) {
-  if (signals[i].score > 0) {
-   bullScore += signals[i].score;
-  }
-  if (signals[i].score < 0) {
-   bearScore += Math.abs(signals[i].score);
-  }
- }
-
- renderSummary(bullScore, bearScore, signals.length);
+ renderSummaryV2(final, signals.length);
 
  if (signals.length === 0) {
   reportList.innerHTML =
-   '<div class="item"><div class="name">目前無明顯訊號</div><div class="desc">尚未偵測到明確多空型態。</div></div>';
-  return { bullScore: bullScore, bearScore: bearScore };
+   '<div class="item"><div class="name">目前無明顯訊號</div><div class="desc">尚未偵測到明確多空型態，建議觀察 MA20 與前高前低。</div></div>';
+  return;
  }
 
  for (let i = 0; i < signals.length; i++) {
@@ -541,274 +515,290 @@ function runAnalysis(data, stockId) {
   div.innerHTML =
    '<div class="date">' + s.date + '</div>' +
    '<div class="name">' + s.name + '</div>' +
-   '<div class="desc">' + s.desc + '</div>';
+   '<div class="desc">' +
+   '<span class="tag">' + s.position + '</span>' +
+   '<span class="tag">' + s.volumeText + '</span>' +
+   s.desc +
+   '<br>確認：' + s.confirm +
+   '<br>失效：' + s.fail +
+   '<br>V2 分數：' + s.finalScore +
+   '</div>';
 
   reportList.appendChild(div);
  }
 
- addLog("✓ 方天龍 01～95 規則庫命中 " + signals.length + " 筆訊號");
-
- return { bullScore: bullScore, bearScore: bearScore };
+ addLog("✓ 方天龍 V2 規則庫命中 " + signals.length + " 筆訊號");
 }
 
-function renderSummary(bullScore, bearScore, count) {
+function buildFinalScore(signals, data) {
+ let bull = 0;
+ let bear = 0;
+
+ for (let i = 0; i < signals.length; i++) {
+  if (signals[i].finalScore > 0) bull += signals[i].finalScore;
+  if (signals[i].finalScore < 0) bear += Math.abs(signals[i].finalScore);
+ }
+
+ const last = data[data.length - 1];
+ const trendBonus = getTrendBonus(last);
+
+ if (trendBonus > 0) bull += trendBonus;
+ if (trendBonus < 0) bear += Math.abs(trendBonus);
+
+ return {
+  bullScore: Math.round(bull),
+  bearScore: Math.round(bear),
+  trendBonus: trendBonus
+ };
+}
+
+function renderSummaryV2(final, count) {
  let bias = "盤整觀察";
  let color = "#ff9100";
+ const bull = final.bullScore;
+ const bear = final.bearScore;
 
- if (bullScore > bearScore * 1.25) {
+ if (bull > bear * 1.3) {
   bias = "多方優勢";
   color = "#ef5350";
- } else if (bearScore > bullScore * 1.25) {
+ } else if (bear > bull * 1.3) {
   bias = "空方優勢";
   color = "#26a69a";
  }
 
  document.getElementById("summaryBox").innerHTML =
   '<div class="summary-card" style="border-left-color:' + color + '">' +
-  '<div class="label">綜合方向</div>' +
+  '<div class="label">V2 綜合方向</div>' +
   '<div class="value">' + bias + '</div>' +
+  '<div class="note">趨勢加權：' + final.trendBonus + '</div>' +
   '</div>' +
   '<div class="summary-card">' +
   '<div class="label">多方分數</div>' +
-  '<div class="value">' + bullScore + '</div>' +
+  '<div class="value">' + bull + '</div>' +
+  '<div class="note">含型態、量能、位置</div>' +
   '</div>' +
   '<div class="summary-card">' +
   '<div class="label">空方分數 / 命中</div>' +
-  '<div class="value">' + bearScore + " / " + count + '</div>' +
+  '<div class="value">' + bear + " / " + count + '</div>' +
+  '<div class="note">分數高代表訊號密集</div>' +
   '</div>';
 }
 
-function analyzeFangTianLongV1(data) {
+function detectFTLV2(data) {
  const signals = [];
+ const start = Math.max(2, data.length - 80);
 
- if (!data || data.length < 60) {
-  return signals;
+ for (let i = start; i < data.length; i++) {
+  const c = data[i];
+  const p = data[i - 1];
+  const p2 = data[i - 2];
+  const ci = candleInfo(c, p);
+  const pi = candleInfo(p, p2);
+  const pos = trendPosition(data, i);
+  const vol = volumeState(data, i);
+
+  if (c.low > p.high) addSignal(signals, 4, c, pos, vol, "向上跳空缺口出現，代表買盤主動進攻。", "缺口不被快速回補，且收盤站穩缺口上緣。", "跌回缺口下緣或 3 日內完全回補。");
+  if (c.high < p.low) addSignal(signals, 7, c, pos, vol, "向下跳空缺口出現，代表賣壓主動下殺。", "反彈無法回補缺口，且續跌。", "站回缺口上緣。");
+
+  if (i >= 4) {
+   const gapsUp = countUpGaps(data, i, 5);
+   const gapsDown = countDownGaps(data, i, 5);
+   if (gapsUp >= 3) addSignal(signals, 2, c, pos, vol, "近期出現多次向上缺口，行情進入加速段。", "缺口持續不補且量能支持。", "第三缺口後爆量長黑或缺口回補。");
+   if (gapsDown >= 3) addSignal(signals, 3, c, pos, vol, "近期出現多次向下缺口，空方慣性明顯。", "反彈無法回補缺口。", "長紅站回缺口區。");
+  }
+
+  if (p.close <= p.ma20 && c.close > c.ma20) addSignal(signals, 29, c, pos, vol, "收盤站上 MA20 生命線，短線轉強。", "隔日仍守 MA20，或帶量續漲。", "跌回 MA20 下方。");
+  if (p.close >= p.ma20 && c.close < c.ma20) addSignal(signals, 58, c, pos, vol, "收盤跌破 MA20，短線轉弱。", "反抽無法站回 MA20。", "隔日重新站回 MA20。");
+
+  if (c.close > c.ma20 && c.ma20 > c.ma60 && c.ma5 > c.ma10) addSignal(signals, 33, c, pos, vol, "均線呈多頭開口，股價位於生命線上方。", "MA5、MA10、MA20 維持向上。", "跌破 MA20 或 MA5 下彎。");
+  if (c.close < c.ma20 && c.ma20 < c.ma60 && c.ma5 < c.ma10) addSignal(signals, 72, c, pos, vol, "均線呈空頭結構，股價位於生命線下方。", "反彈不過 MA20。", "站回 MA20 且 MA5 翻揚。");
+
+  if (ci.isBull && ci.bodyRatio > 0.65 && c.chgPct > 2) addSignal(signals, 11, c, pos, vol, "長紅 K 出現，買盤力道明顯。", "後續量增不破長紅低點。", "跌破長紅低點或隔日長黑吞噬。");
+  if (ci.isBear && ci.bodyRatio > 0.65 && c.chgPct < -2) addSignal(signals, 47, c, pos, vol, "長黑 K 出現，賣壓明顯。", "反彈不過長黑中值。", "重新站回長黑高點。");
+
+  if (ci.bodyRatio < 0.12) {
+   if (pos === "高檔") addSignal(signals, 20, c, pos, vol, "高檔十字，代表多空猶豫與追價停頓。", "隔日跌破十字低點。", "隔日長紅站上十字高點。");
+   else if (pos === "低檔") addSignal(signals, 19, c, pos, vol, "低檔十字，代表殺盤可能鈍化。", "隔日紅 K 站上十字高點。", "跌破十字低點。");
+   else addSignal(signals, 17, c, pos, vol, "十字線代表多空拉鋸，等待方向確認。", "突破十字高低點。", "區間內持續震盪。");
+  }
+
+  if (pos === "低檔" && ci.lowerShadowRatio > 0.55 && ci.bodyRatio < 0.35) addSignal(signals, 25, c, pos, vol, "低檔錘子線，下方承接力浮現。", "隔日站上錘子高點。", "跌破錘子低點。");
+  if (pos === "高檔" && ci.upperShadowRatio > 0.55 && ci.bodyRatio < 0.35) addSignal(signals, 86, c, pos, vol, "高檔流星線，上攻遇壓。", "跌破流星線低點。", "站回流星線高點。");
+
+  if (p.close < p.open && c.close > c.open && c.close > p.open && c.open < p.close) addSignal(signals, 50, c, pos, vol, "紅 K 包覆前黑 K，低檔較偏多。", "站上包絡高點。", "跌破包絡低點。");
+  if (p.close > p.open && c.close < c.open && c.open > p.close && c.close < p.open) addSignal(signals, 78, c, pos, vol, "黑 K 吞噬前紅 K，賣壓轉強。", "跌破包絡低點。", "站回包絡高點。");
+
+  if (p2.close > p2.open && p.close > p.open && c.close > c.open && p.close > p2.close && c.close > p.close) addSignal(signals, 45, c, pos, vol, "連續三根紅 K 推進，紅三兵結構。", "不跌破第三根紅 K 低點。", "長黑吞噬三紅。");
+  if (p2.close < p2.open && p.close < p.open && c.close < c.open && p.close < p2.close && c.close < p.close) addSignal(signals, 84, c, pos, vol, "連續三根黑 K 下壓，三烏鴉結構。", "反彈不過第三根黑 K 高點。", "長紅站回三烏鴉高點。");
+
+  if (p2.close < p2.open && p.close > p.open && c.close < c.open && c.close < p.close) addSignal(signals, 95, c, pos, vol, "黑紅黑結構，反彈失敗風險提高。", "跌破第三根黑 K 低點。", "站回第二根紅 K 高點。");
+
+  if (c.close > p.close && p.close > p2.close && c.low >= p.low && p.low >= p2.low) addSignal(signals, 67, c, pos, vol, "收盤與低點逐步墊高，形成起漲階梯。", "續創高且回檔不破前低。", "跌破階梯前低。");
+
+  if (isTripleTop(data, i)) addSignal(signals, 75, c, pos, vol, "近期多次挑戰高點未過，壓力明顯。", "跌破頸線或 MA20。", "帶量突破前高。");
+
+  const box = boxBreak(data, i);
+  if (box === "up") addSignal(signals, 40, c, pos, vol, "突破近期箱型上緣，偏多觀察。", "回測箱頂不破。", "跌回箱型內。");
+  if (box === "down") addSignal(signals, 40, c, pos, vol, "跌破近期箱型下緣，偏空觀察。", "反抽箱底不過。", "重新站回箱型。");
+
+  if (isMorningStar(data, i)) addSignal(signals, 54, c, pos, vol, "低檔晨星類反轉結構，止跌反彈機率提高。", "第三根紅 K 續強。", "跌破星線低點。");
+  if (isEveningStar(data, i)) addSignal(signals, 82, c, pos, vol, "高檔夜星類轉弱結構，需防反轉。", "第三根黑 K 續弱。", "站回星線高點。");
+  if (isDarkCloud(data, i)) addSignal(signals, 81, c, pos, vol, "高檔紅 K 後黑 K 壓回，烏雲蓋頂。", "跌破黑 K 低點。", "站回前紅 K 高點。");
  }
 
- for (let i = 2; i < data.length; i++) {
-  const curr = data[i];
-  const prev = data[i - 1];
-  const prev2 = data[i - 2];
-
-  const trend = getTrendContext(data, i);
-  const candle = getCandleInfo(curr);
-
-  if (curr.low > prev.high) {
-   pushSignal(signals, 4, curr, "今日低點高於昨日高點，形成向上跳空缺口。若後續不回補，偏多力道較強。");
-  }
-
-  if (curr.high < prev.low) {
-   pushSignal(signals, 7, curr, "今日高點低於昨日低點，形成向下跳空缺口。若反彈無法回補，偏空。");
-  }
-
-  if (prev.close <= prev.ma20 && curr.close > curr.ma20) {
-   pushSignal(signals, 29, curr, "收盤重新站上 MA20，短線生命線轉強。");
-  }
-
-  if (prev.close >= prev.ma20 && curr.close < curr.ma20) {
-   pushSignal(signals, 58, curr, "收盤跌破 MA20，短線轉弱，需觀察是否能快速站回。");
-  }
-
-  if (curr.close > curr.ma20 && curr.ma20 > curr.ma60) {
-   pushSignal(signals, 32, curr, "股價 > MA20 > MA60，趨勢結構偏多。");
-  }
-
-  if (curr.close < curr.ma20 && curr.ma20 < curr.ma60) {
-   pushSignal(signals, 72, curr, "股價 < MA20 < MA60，趨勢結構偏空。");
-  }
-
-  if (candle.isBull && candle.bodyRatio > 0.65 && candle.changePct > 2) {
-   pushSignal(signals, 11, curr, "出現長紅 K，買盤力道明顯。若搭配放量，攻擊力更強。");
-  }
-
-  if (candle.isBear && candle.bodyRatio > 0.65 && candle.changePct < -2) {
-   pushSignal(signals, 11, curr, "出現長黑 K，賣壓明顯。若在高檔區，需防轉弱。");
-  }
-
-  if (trend === "low" && candle.lowerShadowRatio > 0.55 && candle.bodyRatio < 0.35) {
-   pushSignal(signals, 25, curr, "低檔出現長下影小實體，代表下方承接力浮現。");
-  }
-
-  if (trend === "high" && candle.upperShadowRatio > 0.55 && candle.bodyRatio < 0.35) {
-   pushSignal(signals, 86, curr, "高檔出現長上影，代表上攻遇壓。");
-  }
-
-  if (candle.bodyRatio < 0.12) {
-   if (trend === "high") {
-    pushSignal(signals, 20, curr, "高檔十字線代表多空猶豫，若隔日轉弱需小心。");
-   } else if (trend === "low") {
-    pushSignal(signals, 19, curr, "低檔十字線代表殺盤鈍化，需隔日紅 K 確認。");
-   } else {
-    pushSignal(signals, 17, curr, "十字線代表多空拉鋸，需等待下一根確認方向。");
-   }
-  }
-
-  if (
-   prev.close < prev.open &&
-   curr.close > curr.open &&
-   curr.close > prev.open &&
-   curr.open < prev.close
-  ) {
-   pushSignal(signals, 50, curr, "紅 K 包覆前一根黑 K，若在低檔出現，偏多反轉機率提高。");
-  }
-
-  if (
-   prev.close > prev.open &&
-   curr.close < curr.open &&
-   curr.open > prev.close &&
-   curr.close < prev.open
-  ) {
-   pushSignal(signals, 78, curr, "黑 K 包覆前一根紅 K，代表賣壓轉強。");
-  }
-
-  if (
-   curr.close > curr.open &&
-   prev.close > prev.open &&
-   prev2.close > prev2.open &&
-   curr.close > prev.close &&
-   prev.close > prev2.close
-  ) {
-   pushSignal(signals, 45, curr, "連續三根紅 K 向上推進，多方攻擊力增強。");
-  }
-
-  if (
-   curr.close < curr.open &&
-   prev.close < prev.open &&
-   prev2.close < prev2.open &&
-   curr.close < prev.close &&
-   prev.close < prev2.close
-  ) {
-   pushSignal(signals, 84, curr, "連續三根黑 K 下壓，空方主導力增強。");
-  }
-
-  if (
-   prev2.close < prev2.open &&
-   prev.close > prev.open &&
-   curr.close < curr.open &&
-   curr.close < prev.close
-  ) {
-   pushSignal(signals, 95, curr, "黑紅黑結構出現，若在跌勢或反彈末端，代表反彈失敗風險。");
-  }
-
-  if (
-   curr.close > prev.close &&
-   prev.close > prev2.close &&
-   curr.low >= prev.low &&
-   prev.low >= prev2.low
-  ) {
-   pushSignal(signals, 67, curr, "收盤與低點逐步墊高，形成起漲階梯結構。");
-  }
-
-  if (isTripleTop(data, i)) {
-   pushSignal(signals, 75, curr, "近期多次挑戰高點未過，需防形成高檔壓力。");
-  }
-
-  const box = getBoxBreak(data, i);
-  if (box === "up") {
-   pushSignal(signals, 40, curr, "突破近期箱型上緣，偏多觀察。");
-  } else if (box === "down") {
-   pushSignal(signals, 40, curr, "跌破近期箱型下緣，偏空觀察。");
-  }
- }
-
- return mergeAndSortSignals(signals);
+ return mergeSignals(signals);
 }
 
-function pushSignal(signals, ruleId, candle, extraText) {
- const rule = FTL_RULES.find(function(x) {
-  return x.id === ruleId;
- });
-
+function addSignal(signals, ruleId, candle, position, volumeText, desc, confirm, fail) {
+ const rule = RULES[ruleId];
  if (!rule) return;
+
+ let finalScore = rule.score;
+ finalScore += positionWeight(rule.bias, position);
+ finalScore += volumeWeight(rule.bias, volumeText);
 
  signals.push({
   id: rule.id,
-  type: rule.bias === "bull" ? "buy" : rule.bias === "bear" ? "sell" : "master",
   date: candle.time,
   name: "單元 " + String(rule.id).padStart(2, "0") + "｜" + rule.name,
-  desc: extraText + "｜分數：" + rule.score + "｜" + rule.msg,
-  score: rule.score
+  type: rule.bias === "bull" ? "buy" : rule.bias === "bear" ? "sell" : "master",
+  desc: desc + "｜" + rule.msg,
+  score: rule.score,
+  finalScore: Math.round(finalScore),
+  position: position,
+  volumeText: volumeText,
+  confirm: confirm,
+  fail: fail
  });
 }
 
-function getCandleInfo(d) {
- const range = Math.max(d.high - d.low, 0.0001);
- const body = Math.abs(d.close - d.open);
- const upperShadow = d.high - Math.max(d.open, d.close);
- const lowerShadow = Math.min(d.open, d.close) - d.low;
+function candleInfo(c, p) {
+ const range = Math.max(c.high - c.low, 0.0001);
+ const body = Math.abs(c.close - c.open);
+ const upper = c.high - Math.max(c.open, c.close);
+ const lower = Math.min(c.open, c.close) - c.low;
 
  return {
-  isBull: d.close > d.open,
-  isBear: d.close < d.open,
+  isBull: c.close > c.open,
+  isBear: c.close < c.open,
   bodyRatio: body / range,
-  upperShadowRatio: upperShadow / range,
-  lowerShadowRatio: lowerShadow / range,
-  changePct: ((d.close - d.open) / d.open) * 100
+  upperShadowRatio: upper / range,
+  lowerShadowRatio: lower / range,
+  changePct: p ? ((c.close - p.close) / p.close) * 100 : 0
  };
 }
 
-function getTrendContext(data, i) {
+function trendPosition(data, i) {
  const start = Math.max(0, i - 60);
  const section = data.slice(start, i + 1);
-
- const highs = section.map(function(d) { return d.high; });
- const lows = section.map(function(d) { return d.low; });
-
+ const highs = section.map(d => d.high);
+ const lows = section.map(d => d.low);
  const maxHigh = Math.max.apply(null, highs);
  const minLow = Math.min.apply(null, lows);
+ const pos = (data[i].close - minLow) / Math.max(maxHigh - minLow, 0.0001);
 
- const curr = data[i];
- const pos = (curr.close - minLow) / Math.max(maxHigh - minLow, 0.0001);
+ if (pos > 0.75) return "高檔";
+ if (pos < 0.25) return "低檔";
+ return "中段";
+}
 
- if (pos > 0.75) return "high";
- if (pos < 0.25) return "low";
- return "middle";
+function volumeState(data, i) {
+ const c = data[i];
+ if (!c.volume || !c.vol20) return "量能普通";
+ if (c.volume > c.vol20 * 1.8) return "爆量";
+ if (c.volume > c.vol20 * 1.25) return "放量";
+ if (c.volume < c.vol20 * 0.65) return "量縮";
+ return "量能普通";
+}
+
+function positionWeight(bias, pos) {
+ if (bias === "bull" && pos === "低檔") return 5;
+ if (bias === "bull" && pos === "高檔") return -4;
+ if (bias === "bear" && pos === "高檔") return -5;
+ if (bias === "bear" && pos === "低檔") return 4;
+ return 0;
+}
+
+function volumeWeight(bias, vol) {
+ if (bias === "bull" && (vol === "放量" || vol === "爆量")) return 4;
+ if (bias === "bull" && vol === "量縮") return -3;
+ if (bias === "bear" && (vol === "放量" || vol === "爆量")) return -4;
+ if (bias === "bear" && vol === "量縮") return 2;
+ return 0;
+}
+
+function getTrendBonus(last) {
+ if (last.close > last.ma20 && last.ma20 > last.ma60 && last.ma5 > last.ma10) return 15;
+ if (last.close < last.ma20 && last.ma20 < last.ma60 && last.ma5 < last.ma10) return -15;
+ return 0;
+}
+
+function countUpGaps(data, i, n) {
+ let count = 0;
+ for (let x = Math.max(1, i - n + 1); x <= i; x++) {
+  if (data[x].low > data[x - 1].high) count++;
+ }
+ return count;
+}
+
+function countDownGaps(data, i, n) {
+ let count = 0;
+ for (let x = Math.max(1, i - n + 1); x <= i; x++) {
+  if (data[x].high < data[x - 1].low) count++;
+ }
+ return count;
 }
 
 function isTripleTop(data, i) {
  if (i < 40) return false;
-
  const recent = data.slice(i - 40, i + 1);
  const currHigh = data[i].high;
-
- let touchCount = 0;
-
+ let touch = 0;
  for (let j = 0; j < recent.length; j++) {
-  const diff = Math.abs(recent[j].high - currHigh) / currHigh;
-
-  if (diff < 0.025) {
-   touchCount++;
-  }
+  if (Math.abs(recent[j].high - currHigh) / currHigh < 0.025) touch++;
  }
-
- return touchCount >= 3;
+ return touch >= 3 && trendPosition(data, i) === "高檔";
 }
 
-function getBoxBreak(data, i) {
+function boxBreak(data, i) {
  if (i < 30) return "";
-
- const prevRange = data.slice(i - 30, i);
- const highs = prevRange.map(function(d) { return d.high; });
- const lows = prevRange.map(function(d) { return d.low; });
-
- const boxHigh = Math.max.apply(null, highs);
- const boxLow = Math.min.apply(null, lows);
- const curr = data[i];
-
- if (curr.close > boxHigh) return "up";
- if (curr.close < boxLow) return "down";
-
+ const prev = data.slice(i - 30, i);
+ const highs = prev.map(d => d.high);
+ const lows = prev.map(d => d.low);
+ const hi = Math.max.apply(null, highs);
+ const lo = Math.min.apply(null, lows);
+ if (data[i].close > hi) return "up";
+ if (data[i].close < lo) return "down";
  return "";
 }
 
-function mergeAndSortSignals(signals) {
+function isMorningStar(data, i) {
+ if (i < 2) return false;
+ const a = data[i - 2], b = data[i - 1], c = data[i];
+ const ai = candleInfo(a, null), bi = candleInfo(b, null), ci = candleInfo(c, null);
+ return ai.isBear && ai.bodyRatio > 0.45 && bi.bodyRatio < 0.35 && ci.isBull && c.close > (a.open + a.close) / 2 && trendPosition(data, i) !== "高檔";
+}
+
+function isEveningStar(data, i) {
+ if (i < 2) return false;
+ const a = data[i - 2], b = data[i - 1], c = data[i];
+ const ai = candleInfo(a, null), bi = candleInfo(b, null), ci = candleInfo(c, null);
+ return ai.isBull && ai.bodyRatio > 0.45 && bi.bodyRatio < 0.35 && ci.isBear && c.close < (a.open + a.close) / 2 && trendPosition(data, i) !== "低檔";
+}
+
+function isDarkCloud(data, i) {
+ if (i < 1) return false;
+ const p = data[i - 1], c = data[i];
+ return p.close > p.open && c.close < c.open && c.open > p.close && c.close < (p.open + p.close) / 2 && c.close > p.open && trendPosition(data, i) === "高檔";
+}
+
+function mergeSignals(signals) {
  const map = {};
  const result = [];
 
  for (let i = signals.length - 1; i >= 0; i--) {
   const s = signals[i];
   const key = s.id + "_" + s.date;
-
   if (!map[key]) {
    map[key] = true;
    result.push(s);
@@ -816,10 +806,10 @@ function mergeAndSortSignals(signals) {
  }
 
  result.sort(function(a, b) {
-  return Math.abs(b.score) - Math.abs(a.score);
+  return Math.abs(b.finalScore) - Math.abs(a.finalScore);
  });
 
- return result.slice(0, 35);
+ return result.slice(0, 40);
 }
 
 function drawChart(data) {
@@ -859,7 +849,6 @@ function drawChart(data) {
 
  for (let i = 0; i <= 5; i++) {
   const y = padding + i * ((h - padding * 2) / 5);
-
   ctx.beginPath();
   ctx.moveTo(padding, y);
   ctx.lineTo(w - padding, y);
@@ -893,7 +882,6 @@ function drawChart(data) {
 
   const top = Math.min(openY, closeY);
   const height = Math.max(Math.abs(closeY - openY), 1);
-
   ctx.fillRect(x - candleW / 2, top, candleW, height);
  }
 
@@ -909,12 +897,8 @@ function drawLine(ctx, data, key, getX, getY, color) {
  for (let i = 0; i < data.length; i++) {
   const x = getX(i);
   const y = getY(data[i][key]);
-
-  if (i === 0) {
-   ctx.moveTo(x, y);
-  } else {
-   ctx.lineTo(x, y);
-  }
+  if (i === 0) ctx.moveTo(x, y);
+  else ctx.lineTo(x, y);
  }
 
  ctx.stroke();
