@@ -1,9 +1,530 @@
-<!DOCTYPE html>
+const GOOGLE_API_KEY = "請貼上你的Google_AI_API_KEY";
+const GOOGLE_MODEL = "gemini-1.5-flash";
+
+export default {
+ async fetch(request) {
+  const url = new URL(request.url);
+
+  if (url.pathname === "/api/stock") {
+   return handleStockApi(request);
+  }
+
+  if (url.pathname === "/api/google-ai") {
+   return handleGoogleAiApi(request);
+  }
+
+  return new Response(getHtml(), {
+   headers: {
+    "Content-Type": "text/html; charset=utf-8"
+   }
+  });
+ }
+};
+
+async function handleStockApi(request) {
+ try {
+  const url = new URL(request.url);
+  const stockId = String(url.searchParams.get("stockId") || "").trim();
+
+  if (!stockId) {
+   return jsonResponse({
+    ok: false,
+    error: "缺少 stockId"
+   }, 400);
+  }
+
+  const result = await fetchRealStockData(stockId);
+
+  return jsonResponse({
+   ok: true,
+   stockId: stockId,
+   source: result.source,
+   data: result.rows
+  });
+
+ } catch (err) {
+  return jsonResponse({
+   ok: false,
+   error: err.message || "股票資料抓取失敗"
+  }, 500);
+ }
+}
+
+async function handleGoogleAiApi(request) {
+ try {
+  if (!GOOGLE_API_KEY || GOOGLE_API_KEY === "請貼上你的Google_AI_API_KEY") {
+   return jsonResponse({
+    ok: true,
+    text: "尚未填入 Google AI API Key，所以這次只顯示本系統原始判讀。"
+   });
+  }
+
+  if (request.method !== "POST") {
+   return jsonResponse({
+    ok: false,
+    error: "只允許 POST"
+   }, 405);
+  }
+
+  const body = await request.json();
+  const prompt = body.prompt || "";
+
+  if (!prompt) {
+   return jsonResponse({
+    ok: false,
+    error: "缺少 prompt"
+   }, 400);
+  }
+
+  const apiUrl =
+   "https://generativelanguage.googleapis.com/v1beta/models/" +
+   GOOGLE_MODEL +
+   ":generateContent?key=" +
+   GOOGLE_API_KEY;
+
+  const response = await fetch(apiUrl, {
+   method: "POST",
+   headers: {
+    "Content-Type": "application/json"
+   },
+   body: JSON.stringify({
+    contents: [
+     {
+      parts: [
+       {
+        text: prompt
+       }
+      ]
+     }
+    ]
+   })
+  });
+
+  const json = await response.json();
+
+  if (!response.ok) {
+   let msg = "Google AI 回傳錯誤";
+   if (json && json.error && json.error.message) {
+    msg = json.error.message;
+   }
+
+   return jsonResponse({
+    ok: false,
+    error: msg
+   }, 500);
+  }
+
+  let text = "Google AI 有回傳，但沒有文字內容。";
+
+  if (
+   json &&
+   json.candidates &&
+   json.candidates[0] &&
+   json.candidates[0].content &&
+   json.candidates[0].content.parts &&
+   json.candidates[0].content.parts[0] &&
+   json.candidates[0].content.parts[0].text
+  ) {
+   text = json.candidates[0].content.parts[0].text;
+  }
+
+  return jsonResponse({
+   ok: true,
+   text: text
+  });
+
+ } catch (err) {
+  return jsonResponse({
+   ok: false,
+   error: err.message || "Google AI 連線失敗"
+  }, 500);
+ }
+}
+
+function jsonResponse(data, status = 200) {
+ return new Response(JSON.stringify(data), {
+  status: status,
+  headers: {
+   "Content-Type": "application/json; charset=utf-8",
+   "Access-Control-Allow-Origin": "*",
+   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+   "Access-Control-Allow-Headers": "Content-Type"
+  }
+ });
+}
+
+async function fetchRealStockData(stockId) {
+ let rows = await fetchYahooStock(stockId, "TW");
+
+ if (rows.length >= 20) {
+  return {
+   source: "Yahoo .TW",
+   rows: rows.slice(-160)
+  };
+ }
+
+ rows = await fetchYahooStock(stockId, "TWO");
+
+ if (rows.length >= 20) {
+  return {
+   source: "Yahoo .TWO",
+   rows: rows.slice(-160)
+  };
+ }
+
+ rows = await fetchTaiwanOfficial(stockId);
+
+ if (rows.length >= 20) {
+  return {
+   source: "TWSE / TPEx Official",
+   rows: rows.slice(-160)
+  };
+ }
+
+ throw new Error("抓不到足夠真實 K 線資料，請確認股票代號是否正確。");
+}
+
+async function fetchYahooStock(stockId, suffix) {
+ try {
+  const symbol = stockId + "." + suffix;
+
+  const apiUrl =
+   "https://query1.finance.yahoo.com/v8/finance/chart/" +
+   symbol +
+   "?range=8mo&interval=1d";
+
+  const response = await fetch(apiUrl, {
+   headers: {
+    "User-Agent": "Mozilla/5.0"
+   }
+  });
+
+  if (!response.ok) {
+   return [];
+  }
+
+  const json = await response.json();
+
+  if (
+   !json ||
+   !json.chart ||
+   !json.chart.result ||
+   !json.chart.result[0]
+  ) {
+   return [];
+  }
+
+  const result = json.chart.result[0];
+  const timestamps = result.timestamp || [];
+
+  if (
+   !result.indicators ||
+   !result.indicators.quote ||
+   !result.indicators.quote[0]
+  ) {
+   return [];
+  }
+
+  const quote = result.indicators.quote[0];
+  const opens = quote.open || [];
+  const highs = quote.high || [];
+  const lows = quote.low || [];
+  const closes = quote.close || [];
+  const volumes = quote.volume || [];
+
+  const rows = [];
+
+  for (let i = 0; i < timestamps.length; i++) {
+   const open = Number(opens[i]);
+   const high = Number(highs[i]);
+   const low = Number(lows[i]);
+   const close = Number(closes[i]);
+   const volume = Number(volumes[i] || 0);
+
+   if (
+    isFinite(open) &&
+    isFinite(high) &&
+    isFinite(low) &&
+    isFinite(close)
+   ) {
+    const d = new Date(timestamps[i] * 1000);
+
+    const time =
+     d.getFullYear() + "-" +
+     String(d.getMonth() + 1).padStart(2, "0") + "-" +
+     String(d.getDate()).padStart(2, "0");
+
+    rows.push({
+     time: time,
+     open: round2(open),
+     high: round2(high),
+     low: round2(low),
+     close: round2(close),
+     volume: volume
+    });
+   }
+  }
+
+  return rows;
+
+ } catch (err) {
+  return [];
+ }
+}
+
+async function fetchTaiwanOfficial(stockId) {
+ const months = getRecentMonths(8);
+ let allRows = [];
+
+ for (let i = 0; i < months.length; i++) {
+  const yyyymmdd = months[i] + "01";
+
+  let rows = await fetchTwseMonth(stockId, yyyymmdd);
+
+  if (rows.length === 0) {
+   rows = await fetchTpexMonth(stockId, yyyymmdd);
+  }
+
+  allRows = allRows.concat(rows);
+  await sleep(250);
+ }
+
+ allRows.sort(function(a, b) {
+  return new Date(a.time) - new Date(b.time);
+ });
+
+ const map = {};
+ const unique = [];
+
+ for (let i = 0; i < allRows.length; i++) {
+  const d = allRows[i];
+
+  if (!map[d.time]) {
+   map[d.time] = true;
+   unique.push(d);
+  }
+ }
+
+ return unique;
+}
+
+async function fetchTwseMonth(stockId, yyyymmdd) {
+ try {
+  const apiUrl =
+   "https://www.twse.com.tw/exchangeReport/STOCK_DAY?response=json&date=" +
+   yyyymmdd +
+   "&stockNo=" +
+   stockId;
+
+  const response = await fetch(apiUrl, {
+   headers: {
+    "User-Agent": "Mozilla/5.0"
+   }
+  });
+
+  if (!response.ok) {
+   return [];
+  }
+
+  const json = await response.json();
+
+  if (!json || !json.data || !Array.isArray(json.data)) {
+   return [];
+  }
+
+  const rows = [];
+
+  for (let i = 0; i < json.data.length; i++) {
+   const row = json.data[i];
+
+   const time = rocDateToAD(row[0]);
+   const volume = parsePrice(row[1]);
+   const open = parsePrice(row[3]);
+   const high = parsePrice(row[4]);
+   const low = parsePrice(row[5]);
+   const close = parsePrice(row[6]);
+
+   if (
+    time &&
+    isFinite(open) &&
+    isFinite(high) &&
+    isFinite(low) &&
+    isFinite(close)
+   ) {
+    rows.push({
+     time: time,
+     open: open,
+     high: high,
+     low: low,
+     close: close,
+     volume: isFinite(volume) ? volume : 0
+    });
+   }
+  }
+
+  return rows;
+
+ } catch (err) {
+  return [];
+ }
+}
+
+async function fetchTpexMonth(stockId, yyyymmdd) {
+ try {
+  const rocDate = adDateToRocDate(yyyymmdd);
+
+  const urls = [
+   "https://www.tpex.org.tw/www/zh-tw/afterTrading/tradingStock?code=" +
+    stockId +
+    "&date=" +
+    rocDate +
+    "&id=&response=json",
+
+   "https://www.tpex.org.tw/web/stock/aftertrading/daily_trading_info/st43_result.php?l=zh-tw&d=" +
+    rocDate +
+    "&stkno=" +
+    stockId
+  ];
+
+  for (let u = 0; u < urls.length; u++) {
+   const response = await fetch(urls[u], {
+    headers: {
+     "User-Agent": "Mozilla/5.0"
+    }
+   });
+
+   if (!response.ok) {
+    continue;
+   }
+
+   const json = await response.json();
+   let tableRows = [];
+
+   if (
+    json &&
+    Array.isArray(json.tables) &&
+    json.tables[0] &&
+    Array.isArray(json.tables[0].data)
+   ) {
+    tableRows = json.tables[0].data;
+   } else if (json && Array.isArray(json.data)) {
+    tableRows = json.data;
+   } else if (json && Array.isArray(json.aaData)) {
+    tableRows = json.aaData;
+   } else {
+    continue;
+   }
+
+   const rows = [];
+
+   for (let i = 0; i < tableRows.length; i++) {
+    const row = tableRows[i];
+
+    const time = rocDateToAD(row[0]);
+    const volume = parsePrice(row[1]);
+    const open = parsePrice(row[3]);
+    const high = parsePrice(row[4]);
+    const low = parsePrice(row[5]);
+    const close = parsePrice(row[6]);
+
+    if (
+     time &&
+     isFinite(open) &&
+     isFinite(high) &&
+     isFinite(low) &&
+     isFinite(close)
+    ) {
+     rows.push({
+      time: time,
+      open: open,
+      high: high,
+      low: low,
+      close: close,
+      volume: isFinite(volume) ? volume : 0
+     });
+    }
+   }
+
+   if (rows.length > 0) {
+    return rows;
+   }
+  }
+
+  return [];
+
+ } catch (err) {
+  return [];
+ }
+}
+
+function getRecentMonths(count) {
+ const arr = [];
+ const now = new Date();
+
+ for (let i = count - 1; i >= 0; i--) {
+  const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  arr.push(String(y) + m);
+ }
+
+ return arr;
+}
+
+function rocDateToAD(str) {
+ if (!str) return "";
+
+ const clean = String(str).trim().replace(/\s/g, "");
+ const parts = clean.split("/");
+
+ if (parts.length !== 3) return "";
+
+ const year = parseInt(parts[0], 10) + 1911;
+ const month = String(parseInt(parts[1], 10)).padStart(2, "0");
+ const day = String(parseInt(parts[2], 10)).padStart(2, "0");
+
+ return year + "-" + month + "-" + day;
+}
+
+function adDateToRocDate(yyyymmdd) {
+ const year = parseInt(yyyymmdd.substring(0, 4), 10) - 1911;
+ const month = yyyymmdd.substring(4, 6);
+ const day = yyyymmdd.substring(6, 8);
+
+ return year + "/" + month + "/" + day;
+}
+
+function parsePrice(value) {
+ if (value === null || value === undefined) return NaN;
+
+ const s = String(value)
+  .replace(/,/g, "")
+  .replace(/X/g, "")
+  .replace(/x/g, "")
+  .replace(/--/g, "")
+  .trim();
+
+ if (s === "" || s === "---" || s === "--") return NaN;
+
+ return Number(s);
+}
+
+function sleep(ms) {
+ return new Promise(function(resolve) {
+  setTimeout(resolve, ms);
+ });
+}
+
+function round2(num) {
+ return Math.round(num * 100) / 100;
+}
+
+function getHtml() {
+ return `<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
 <title>方天龍 K 線精準判讀全自動系統</title>
-
 <style>
 body {
  background-color: #131722;
@@ -194,6 +715,37 @@ canvas {
  color: #ff3333;
  font-weight: bold;
 }
+
+.summary-box {
+ display: grid;
+ grid-template-columns: repeat(3, 1fr);
+ gap: 12px;
+ margin-bottom: 15px;
+}
+
+@media (max-width: 800px) {
+ .summary-box {
+  grid-template-columns: 1fr;
+ }
+}
+
+.summary-card {
+ background: #24293e;
+ border-radius: 8px;
+ padding: 12px;
+ border-left: 5px solid #2962ff;
+}
+
+.summary-card .label {
+ color: #9aa0b5;
+ font-size: 12px;
+}
+
+.summary-card .value {
+ color: #fff;
+ font-size: 22px;
+ font-weight: bold;
+}
 </style>
 </head>
 
@@ -204,13 +756,13 @@ canvas {
  <div class="header">
   <h2 style="color:#fff; margin:0 0 5px 0;">方天龍 K 線精準判讀全自動系統</h2>
   <p style="color:#26a69a; font-weight:bold; margin:0;">
-   ✓ 完整單檔版：真實 K 線資料 + 原本判斷方式 + Google AI 連線補充
+   ✓ 一份搞定版：真實 K 線資料 + 01～95 規則庫 + Google AI 補充
   </p>
  </div>
 
  <div class="search-box">
   <label style="color:#fff; font-weight:bold;">台股個股代號：</label>
-  <input type="text" id="stockId" value="3234" placeholder="例如: 3234">
+  <input type="text" id="stockId" value="2354" placeholder="例如: 3234">
   <button type="button" onclick="executeGrandMasterSearch()">發動 1-95單元 全自動即時解碼</button>
   <span id="stockStatus" class="loading">✓ 核心已就緒</span>
  </div>
@@ -234,6 +786,7 @@ canvas {
 
   <div class="card">
    <div class="title">AI 多空量化報告</div>
+   <div id="summaryBox" class="summary-box"></div>
    <div class="signal-list" id="reportList">請點擊藍色按鈕開始分析。</div>
   </div>
  </div>
@@ -246,9 +799,6 @@ canvas {
 </div>
 
 <script>
-const GOOGLE_API_KEY = "請貼上你的Google_AI_API_KEY";
-const GOOGLE_MODEL = "gemini-1.5-flash";
-
 function updateProgress(percent, text) {
  document.getElementById("myBar").style.width = percent + "%";
  document.getElementById("myText").innerText = percent + "%";
@@ -303,26 +853,29 @@ async function executeGrandMasterSearch() {
 
   document.getElementById("chartTitle").innerText =
    "技術線圖 台股 " + stockId + " [藍:MA20 | 橘:MA60]";
+  document.getElementById("reportList").innerHTML = "";
+  document.getElementById("summaryBox").innerHTML = "";
 
   updateProgress(20, "正在抓取真實歷史 K 線資料...");
   addLog("✓ 鎖定股票代號：" + stockId);
 
   const data = await fetchRealStockData(stockId);
 
-  updateProgress(45, "正在計算 MA20 / MA60...");
+  updateProgress(45, "正在計算 MA5 / MA10 / MA20 / MA60...");
   calcMA(data);
 
-  updateProgress(65, "正在進行多空型態判讀...");
-  runAnalysis(data, stockId);
+  updateProgress(65, "正在進行方天龍 01～95 規則庫判讀...");
+  const analysis = runAnalysis(data, stockId);
 
   updateProgress(75, "正在連線 Google AI...");
-
   const originalReport = document.getElementById("reportList").innerText;
 
   const googlePrompt =
    "你是台股K線分析助理。請只根據以下本系統已產生的判讀報告，做補充說明與風險提醒。" +
    "不要改變原本判斷邏輯，不要保證漲跌，不要叫使用者一定買或一定賣。\\n\\n" +
-   "股票代號：" + stockId + "\\n\\n" +
+   "股票代號：" + stockId + "\\n" +
+   "多方分數：" + analysis.bullScore + "\\n" +
+   "空方分數：" + analysis.bearScore + "\\n\\n" +
    "本系統原始判讀：\\n" + originalReport;
 
   const googleResult = await callGoogleAI(googlePrompt);
@@ -347,541 +900,211 @@ async function executeGrandMasterSearch() {
  }
 }
 
+async function fetchRealStockData(stockId) {
+ addLog("▶ 呼叫 Worker 後端抓取真實 K 線：" + stockId);
+
+ const response = await fetch("/api/stock?stockId=" + encodeURIComponent(stockId));
+ const json = await response.json();
+
+ if (!response.ok || !json.ok) {
+  throw new Error(json.error || "後端抓取失敗");
+ }
+
+ addLog("✓ 真實 K 線資料成功，來源：" + json.source + "，共 " + json.data.length + " 筆");
+
+ return json.data;
+}
+
 async function callGoogleAI(prompt) {
  try {
-  if (!GOOGLE_API_KEY || GOOGLE_API_KEY === "請貼上你的Google_AI_API_KEY") {
-   return "尚未填入 Google AI API Key，所以這次只顯示本系統原始判讀。";
-  }
-
-  addLog("▶ 正在連線 Google AI...");
-
-  const url =
-   "https://generativelanguage.googleapis.com/v1beta/models/" +
-   GOOGLE_MODEL +
-   ":generateContent?key=" +
-   GOOGLE_API_KEY;
-
-  const response = await fetch(url, {
+  const response = await fetch("/api/google-ai", {
    method: "POST",
    headers: {
     "Content-Type": "application/json"
    },
    body: JSON.stringify({
-    contents: [
-     {
-      parts: [
-       {
-        text: prompt
-       }
-      ]
-     }
-    ]
+    prompt: prompt
    })
   });
 
   const json = await response.json();
 
-  if (!response.ok) {
-   let msg = "Google AI 回傳錯誤";
-   if (json && json.error && json.error.message) {
-    msg = json.error.message;
-   }
-   throw new Error(msg);
+  if (!response.ok || !json.ok) {
+   throw new Error(json.error || "Google AI 連線失敗");
   }
 
-  if (
-   json &&
-   json.candidates &&
-   json.candidates[0] &&
-   json.candidates[0].content &&
-   json.candidates[0].content.parts &&
-   json.candidates[0].content.parts[0] &&
-   json.candidates[0].content.parts[0].text
-  ) {
-   addLog("✓ Google AI 已成功回傳");
-   return json.candidates[0].content.parts[0].text;
-  }
-
-  return "Google AI 有回傳，但沒有文字內容。";
+  addLog("✓ Google AI 已成功回傳");
+  return json.text;
 
  } catch (err) {
-  addLog("❌ Google AI 連線失敗：" + err.message, true);
-  return "❌ Google AI 連線失敗：" + err.message;
+  addLog("⚠ Google AI 連線失敗：" + err.message, true);
+  return "Google AI 補充失敗：" + err.message;
  }
-}
-
-async function fetchRealStockData(stockId) {
- addLog("▶ 正在抓取真實 K 線資料：" + stockId);
-
- let data = [];
-
- data = await fetchYahooStockData(stockId, "TW");
- if (data.length >= 20) {
-  addLog("✓ Yahoo 上市 .TW 真實資料成功，共 " + data.length + " 筆");
-  return data.slice(-120);
- }
-
- data = await fetchYahooStockData(stockId, "TWO");
- if (data.length >= 20) {
-  addLog("✓ Yahoo 上櫃 .TWO 真實資料成功，共 " + data.length + " 筆");
-  return data.slice(-120);
- }
-
- data = await fetchTaiwanOfficialData(stockId);
- if (data.length >= 20) {
-  addLog("✓ 台灣官方資料成功，共 " + data.length + " 筆");
-  return data.slice(-120);
- }
-
- throw new Error("抓不到足夠真實K線資料，請確認股票代號是否正確，或資料來源被瀏覽器 CORS 擋住。");
-}
-
-async function fetchYahooStockData(stockId, suffix) {
- try {
-  const symbol = stockId + "." + suffix;
-  const url =
-   "https://query1.finance.yahoo.com/v8/finance/chart/" +
-   symbol +
-   "?range=6mo&interval=1d";
-
-  const response = await fetch(url);
-  const json = await response.json();
-
-  if (
-   !json ||
-   !json.chart ||
-   !json.chart.result ||
-   !json.chart.result[0]
-  ) {
-   return [];
-  }
-
-  const result = json.chart.result[0];
-  const timestamps = result.timestamp || [];
-
-  if (
-   !result.indicators ||
-   !result.indicators.quote ||
-   !result.indicators.quote[0]
-  ) {
-   return [];
-  }
-
-  const quote = result.indicators.quote[0];
-  const opens = quote.open || [];
-  const highs = quote.high || [];
-  const lows = quote.low || [];
-  const closes = quote.close || [];
-
-  const data = [];
-
-  for (let i = 0; i < timestamps.length; i++) {
-   const open = Number(opens[i]);
-   const high = Number(highs[i]);
-   const low = Number(lows[i]);
-   const close = Number(closes[i]);
-
-   if (
-    isFinite(open) &&
-    isFinite(high) &&
-    isFinite(low) &&
-    isFinite(close)
-   ) {
-    const d = new Date(timestamps[i] * 1000);
-    const dateStr =
-     d.getFullYear() + "-" +
-     String(d.getMonth() + 1).padStart(2, "0") + "-" +
-     String(d.getDate()).padStart(2, "0");
-
-    data.push({
-     time: dateStr,
-     open: round2(open),
-     high: round2(high),
-     low: round2(low),
-     close: round2(close)
-    });
-   }
-  }
-
-  return data;
-
- } catch (err) {
-  addLog("⚠ Yahoo ." + suffix + " 抓取失敗：" + err.message, true);
-  return [];
- }
-}
-
-async function fetchTaiwanOfficialData(stockId) {
- const months = getRecentMonths(6);
- let allData = [];
-
- for (let i = 0; i < months.length; i++) {
-  const yyyymmdd = months[i] + "01";
-
-  let monthData = await fetchTwseStockMonth(stockId, yyyymmdd);
-
-  if (monthData.length === 0) {
-   monthData = await fetchTpexStockMonth(stockId, yyyymmdd);
-  }
-
-  allData = allData.concat(monthData);
-
-  await sleep(350);
- }
-
- allData.sort(function(a, b) {
-  return new Date(a.time) - new Date(b.time);
- });
-
- const unique = [];
- const map = {};
-
- for (let i = 0; i < allData.length; i++) {
-  const d = allData[i];
-
-  if (!map[d.time]) {
-   map[d.time] = true;
-   unique.push(d);
-  }
- }
-
- return unique;
-}
-
-async function fetchTwseStockMonth(stockId, yyyymmdd) {
- try {
-  const url =
-   "https://www.twse.com.tw/exchangeReport/STOCK_DAY?response=json&date=" +
-   yyyymmdd +
-   "&stockNo=" +
-   stockId;
-
-  const response = await fetch(url);
-  const json = await response.json();
-
-  if (!json || !json.data || !Array.isArray(json.data)) {
-   return [];
-  }
-
-  const result = [];
-
-  for (let i = 0; i < json.data.length; i++) {
-   const row = json.data[i];
-
-   const date = rocDateToAD(row[0]);
-   const open = parsePrice(row[3]);
-   const high = parsePrice(row[4]);
-   const low = parsePrice(row[5]);
-   const close = parsePrice(row[6]);
-
-   if (
-    date &&
-    isFinite(open) &&
-    isFinite(high) &&
-    isFinite(low) &&
-    isFinite(close)
-   ) {
-    result.push({
-     time: date,
-     open: open,
-     high: high,
-     low: low,
-     close: close
-    });
-   }
-  }
-
-  if (result.length > 0) {
-   addLog("✓ TWSE 上市資料：" + yyyymmdd + "，" + result.length + " 筆");
-  }
-
-  return result;
-
- } catch (err) {
-  addLog("⚠ TWSE 抓取失敗：" + err.message, true);
-  return [];
- }
-}
-
-async function fetchTpexStockMonth(stockId, yyyymmdd) {
- try {
-  const rocDate = adDateToRocDate(yyyymmdd);
-
-  const url =
-   "https://www.tpex.org.tw/www/zh-tw/afterTrading/tradingStock?code=" +
-   stockId +
-   "&date=" +
-   rocDate +
-   "&id=&response=json";
-
-  const response = await fetch(url);
-  const json = await response.json();
-
-  let rows = [];
-
-  if (
-   json &&
-   Array.isArray(json.tables) &&
-   json.tables[0] &&
-   Array.isArray(json.tables[0].data)
-  ) {
-   rows = json.tables[0].data;
-  } else if (json && Array.isArray(json.data)) {
-   rows = json.data;
-  } else {
-   return [];
-  }
-
-  const result = [];
-
-  for (let i = 0; i < rows.length; i++) {
-   const row = rows[i];
-
-   const date = rocDateToAD(row[0]);
-   const open = parsePrice(row[3]);
-   const high = parsePrice(row[4]);
-   const low = parsePrice(row[5]);
-   const close = parsePrice(row[6]);
-
-   if (
-    date &&
-    isFinite(open) &&
-    isFinite(high) &&
-    isFinite(low) &&
-    isFinite(close)
-   ) {
-    result.push({
-     time: date,
-     open: open,
-     high: high,
-     low: low,
-     close: close
-    });
-   }
-  }
-
-  if (result.length > 0) {
-   addLog("✓ TPEx 上櫃資料：" + yyyymmdd + "，" + result.length + " 筆");
-  }
-
-  return result;
-
- } catch (err) {
-  addLog("⚠ TPEx 抓取失敗：" + err.message, true);
-  return [];
- }
-}
-
-function getRecentMonths(count) {
- const arr = [];
- const now = new Date();
-
- for (let i = count - 1; i >= 0; i--) {
-  const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  arr.push(String(y) + m);
- }
-
- return arr;
-}
-
-function rocDateToAD(str) {
- if (!str) return "";
-
- const clean = String(str).trim().replace(/\s/g, "");
- const parts = clean.split("/");
-
- if (parts.length !== 3) return "";
-
- const year = parseInt(parts[0], 10) + 1911;
- const month = String(parseInt(parts[1], 10)).padStart(2, "0");
- const day = String(parseInt(parts[2], 10)).padStart(2, "0");
-
- return year + "-" + month + "-" + day;
-}
-
-function adDateToRocDate(yyyymmdd) {
- const year = parseInt(yyyymmdd.substring(0, 4), 10) - 1911;
- const month = yyyymmdd.substring(4, 6);
- const day = yyyymmdd.substring(6, 8);
-
- return year + "/" + month + "/" + day;
-}
-
-function parsePrice(value) {
- if (value === null || value === undefined) return NaN;
-
- const s = String(value)
-  .replace(/,/g, "")
-  .replace(/X/g, "")
-  .replace(/x/g, "")
-  .replace(/--/g, "")
-  .trim();
-
- if (s === "" || s === "---" || s === "--") return NaN;
-
- return Number(s);
-}
-
-function sleep(ms) {
- return new Promise(function(resolve) {
-  setTimeout(resolve, ms);
- });
 }
 
 function calcMA(data) {
  for (let i = 0; i < data.length; i++) {
-  let sum20 = 0;
-  let count20 = 0;
-
-  for (let j = Math.max(0, i - 19); j <= i; j++) {
-   sum20 += data[j].close;
-   count20++;
-  }
-
-  data[i].ma20 = sum20 / count20;
-
-  let sum60 = 0;
-  let count60 = 0;
-
-  for (let k = Math.max(0, i - 59); k <= i; k++) {
-   sum60 += data[k].close;
-   count60++;
-  }
-
-  data[i].ma60 = sum60 / count60;
+  data[i].ma5 = averageClose(data, i, 5);
+  data[i].ma10 = averageClose(data, i, 10);
+  data[i].ma20 = averageClose(data, i, 20);
+  data[i].ma60 = averageClose(data, i, 60);
+  data[i].vol5 = averageVolume(data, i, 5);
  }
-
  addLog("✓ 均線計算完成");
 }
+
+function averageClose(data, i, n) {
+ let sum = 0;
+ let count = 0;
+ for (let j = Math.max(0, i - n + 1); j <= i; j++) {
+  sum += data[j].close;
+  count++;
+ }
+ return sum / count;
+}
+
+function averageVolume(data, i, n) {
+ let sum = 0;
+ let count = 0;
+ for (let j = Math.max(0, i - n + 1); j <= i; j++) {
+  sum += Number(data[j].volume || 0);
+  count++;
+ }
+ return count > 0 ? sum / count : 0;
+}
+
+function r(id, name, bias, type, score, msg) {
+ return {
+  id: id,
+  name: name,
+  bias: bias,
+  type: type,
+  score: score,
+  msg: msg
+ };
+}
+
+const FTL_RULES = [
+ r(1, "缺口為標識號", "neutral", "gap", 8, "缺口代表籌碼與情緒變化，需觀察是否快速回補。"),
+ r(2, "三缺口", "neutral", "gap_series", 10, "連續缺口代表行情加速，但第三缺口後需防過熱。"),
+ r(3, "下跌三缺口", "bear", "down_gap_series", -18, "連續下跌缺口代表賣壓急促。"),
+ r(4, "多方跳蛙缺口", "bull", "up_gap", 15, "向上跳空並守住缺口，代表多方主動進攻。"),
+ r(5, "多方中繼缺口", "bull", "up_gap_continue", 14, "上漲途中缺口未補，偏向多方中繼。"),
+ r(6, "多方初動缺口", "bull", "up_gap_start", 16, "低檔整理後向上跳空，容易形成起漲訊號。"),
+ r(7, "空方跳蛙缺口", "bear", "down_gap", -15, "向下跳空且無法回補，代表空方力道強。"),
+ r(8, "空方中繼缺口", "bear", "down_gap_continue", -14, "下跌途中跳空，若反彈無力，空頭延續。"),
+ r(9, "島狀反轉", "neutral", "island_reversal", 18, "跳空形成孤島後再反向跳空，常見急轉。"),
+ r(10, "漲跌空間觀察", "neutral", "range_projection", 8, "利用缺口、前高前低與波段位置推估空間。"),
+ r(11, "大陽線與大陰線", "neutral", "long_candle", 12, "大紅或大黑 K 代表當日力道明顯。"),
+ r(12, "中繼線", "neutral", "continuation", 8, "趨勢途中整理，未破關鍵位時可能延續原方向。"),
+ r(13, "小紅小黑", "neutral", "small_body", 4, "小實體代表多空暫時平衡，等待確認。"),
+ r(14, "五種單一K線", "neutral", "single_k", 5, "單根 K 線需觀察實體、影線與位置。"),
+ r(15, "五種單一K線延伸", "neutral", "single_k", 5, "單根 K 線不可脫離趨勢位置判斷。"),
+ r(16, "單一K線變化", "neutral", "single_k_group", 5, "影線與實體組合反映多空心理。"),
+ r(17, "十字線", "neutral", "doji", 8, "十字線代表多空拉鋸，需下一根確認。"),
+ r(18, "吊人線", "bear", "hanging_man", -14, "高檔長下影小實體，需防轉弱。"),
+ r(19, "低檔十字線", "bull", "low_doji", 12, "低檔十字代表殺盤可能鈍化。"),
+ r(20, "上吊十字線", "bear", "high_doji", -12, "高檔十字或吊線，轉弱風險提高。"),
+ r(21, "小紅小黑組合", "neutral", "small_body_group", 5, "小 K 連續出現代表盤整或蓄勢。"),
+ r(22, "盤中十字", "neutral", "intraday_doji", 5, "盤中轉折需等待收盤確認。"),
+ r(23, "一字線", "neutral", "flat_line", 8, "一字線代表極端籌碼鎖定，需看打開方向。"),
+ r(24, "吊人線", "bear", "hanging_man", -14, "高檔吊人線代表追價風險升高。"),
+ r(25, "錘子線", "bull", "hammer", 15, "低檔錘子線代表下方承接出現。"),
+ r(26, "流星線", "bear", "shooting_star", -15, "高檔流星線代表上攻遇壓。"),
+ r(27, "倒錘線", "bull", "inverted_hammer", 12, "低檔倒錘線代表試攻，需後續確認。"),
+ r(28, "紡錘線", "neutral", "spinning_top", 6, "紡錘線代表多空猶豫。"),
+ r(29, "K線與生命線", "neutral", "ma_life_line", 10, "站上或跌破 MA20 會影響短線方向。"),
+ r(30, "多空力道位置", "neutral", "position_power", 10, "型態在高檔、低檔、盤整區意義不同。"),
+ r(31, "轉折點", "neutral", "turning_point", 12, "連續趨勢後出現反向 K 線，注意轉折。"),
+ r(32, "趨勢判斷", "neutral", "trend", 10, "趨勢需看高低點、均線與 K 線排列。"),
+ r(33, "開口朝上", "bull", "ma_open_up", 14, "均線開口朝上且股價站穩，偏多。"),
+ r(34, "波浪上架", "bull", "wave_up", 12, "回檔不破前低後再轉強，多方結構尚在。"),
+ r(35, "前面路不通", "bear", "resistance_block", -12, "上方壓力多次無法突破，追高風險增加。"),
+ r(36, "量是燃料", "neutral", "volume_power", 12, "價漲需量能支持，無量上攻容易失敗。"),
+ r(37, "技術指標配合", "neutral", "indicator_confirm", 8, "K 線訊號與指標同向時可信度提高。"),
+ r(38, "3分K盤中觀察", "neutral", "intraday_k", 6, "小週期只作輔助，仍需日 K 確認。"),
+ r(39, "日K續破", "bear", "daily_break", -12, "跌破關鍵 K 線低點後，空方力道提高。"),
+ r(40, "箱型突破", "neutral", "box_break", 14, "突破箱型上緣偏多，跌破下緣偏空。"),
+ r(41, "均線扣抵", "neutral", "ma_deduction", 10, "扣抵高低會影響均線方向。"),
+ r(42, "趨勢交易", "neutral", "trend_trade", 10, "順勢操作勝率較高。"),
+ r(43, "洗盤", "neutral", "shakeout", 10, "強勢股整理洗盤後若再轉強，可能延續趨勢。"),
+ r(44, "突破後回測", "bull", "break_retest", 12, "突破後回測不破，屬健康多方結構。"),
+ r(45, "紅三兵", "bull", "three_white_soldiers", 18, "連續紅 K 向上推進，多方攻擊力強。"),
+ r(46, "五連陽", "bull", "five_up", 16, "連續上漲代表多方強勢，但需防過熱。"),
+ r(47, "一柱擎天", "bear", "one_big_down", -18, "突發長黑或急殺，空方急速出手。"),
+ r(48, "雙日反轉", "neutral", "two_day_reversal", 15, "兩日急速翻轉，常見洗盤或轉折。"),
+ r(49, "空頭吞噬", "bear", "bearish_engulfing", -20, "黑 K 吞噬前方紅 K，賣壓轉強。"),
+ r(50, "包絡線", "neutral", "engulfing", 16, "包絡需看方向與位置，高檔偏空、低檔偏多。"),
+ r(51, "底部中繼", "bull", "bottom_continue", 12, "低檔整理後轉強，可能是底部中繼。"),
+ r(52, "內困三紅", "bull", "inside_three_up", 15, "紅 K 逐步墊高且不破低點，多方累積。"),
+ r(53, "內困三紅反攻", "bull", "inside_three_up", 15, "整理中三紅轉強，代表反攻力道。"),
+ r(54, "母子晨星", "bull", "morning_star", 18, "低檔晨星結構，反轉機率提高。"),
+ r(55, "下跌包圍", "bear", "bearish_engulfing", -18, "黑 K 包圍前方 K 線，空方壓力增加。"),
+ r(56, "破線初形", "bear", "line_break", -14, "跌破關鍵線後無法站回，偏空。"),
+ r(57, "三線反撲", "bull", "three_line_strike", 16, "連續弱勢後突然反撲，需觀察是否站上壓力。"),
+ r(58, "破線處理", "bear", "line_break", -14, "跌破線後先看反抽是否站回。"),
+ r(59, "南方三星", "bull", "southern_star", 16, "低檔連續縮小 K 線，跌勢可能鈍化。"),
+ r(60, "反鎚擊頂", "bear", "inverted_hammer_top", -16, "高檔反鎚形態容易成為轉弱警訊。"),
+ r(61, "V型反轉", "bull", "v_reversal", 18, "急跌後快速收復失土，多方反擊力強。"),
+ r(62, "地板價", "bull", "floor_price", 14, "低檔多次守住同一區域，容易形成支撐。"),
+ r(63, "三線反紅", "bull", "three_line_red", 15, "多根弱勢後轉紅，空方力道可能衰退。"),
+ r(64, "空方壓迫末段", "bull", "bear_end_pressure", 12, "空方壓制但不再破低，可能接近轉折。"),
+ r(65, "拉回加碼點", "bull", "pullback_buy", 15, "上升趨勢中拉回守線，是多方續攻觀察點。"),
+ r(66, "中繼站第九根天線", "bull", "long_trend_continue", 16, "強勢股中繼整理後再攻，屬長線多頭延伸。"),
+ r(67, "起漲階梯", "bull", "stair_up", 18, "低點墊高、高點推升，多方穩健前進。"),
+ r(68, "三日洗盤", "neutral", "three_day_wash", 12, "強勢股短線洗盤，未破趨勢線仍可觀察。"),
+ r(69, "多頭反攻", "bull", "bull_counterattack", 18, "多頭反攻訊號出現，若量能配合，偏多。"),
+ r(70, "三河床", "bull", "three_river", 16, "低檔連續止跌結構，代表多方築底。"),
+ r(71, "多頭孵蛋線", "bull", "bull_harami", 16, "母子線低檔出現，隔日轉強則反彈機率提高。"),
+ r(72, "空頭堡壘", "bear", "bear_fortress", -18, "高檔整理後轉弱，容易成為空方起點。"),
+ r(73, "空方砲", "bear", "bear_cannon", -18, "空方連續攻擊，行情每況愈下。"),
+ r(74, "空頭三星", "bear", "three_star_bear", -16, "高檔多次猶豫後轉弱，空方壓力升高。"),
+ r(75, "三度到高點", "bear", "triple_top", -18, "三次挑戰高點不過，容易轉弱。"),
+ r(76, "一瀉千里", "bear", "cliff_drop", -25, "連續急漲後打開轉弱，需防快速回落。"),
+ r(77, "雙日反轉", "bear", "two_day_reversal", -16, "兩日內由強轉弱，常見高檔洗盤或出貨。"),
+ r(78, "空頭吞噬", "bear", "bearish_engulfing", -20, "大黑 K 吞噬前方多方，偏空。"),
+ r(79, "空方母子", "bear", "bear_harami", -16, "高檔母子線後若轉弱，代表多方退縮。"),
+ r(80, "空方母子十字", "bear", "bear_harami_doji", -18, "高檔母子十字線，若跌破低點，空方確認。"),
+ r(81, "烏雲蓋頂", "bear", "dark_cloud", -20, "高檔紅 K 後黑 K 壓回，代表多方受阻。"),
+ r(82, "夜星", "bear", "evening_star", -20, "高檔夜星結構代表轉弱風險提高。"),
+ r(83, "夜空雙星", "bear", "double_evening_star", -22, "連續高檔星線後轉弱，空方訊號更強。"),
+ r(84, "三烏鴉", "bear", "three_black_crows", -24, "連續黑 K 下壓，空方主導。"),
+ r(85, "大敵當前", "bear", "major_resistance", -18, "上方壓力明顯且攻擊失敗，需防回落。"),
+ r(86, "流星線", "bear", "shooting_star", -16, "高檔長上影代表上攻遇壓。"),
+ r(87, "吊人線", "bear", "hanging_man", -16, "高檔吊人線若隔日跌破，偏空。"),
+ r(88, "空頭棄嬰", "bear", "abandoned_baby_bear", -25, "高檔跳空星線後反向跳空，屬強烈轉弱訊號。"),
+ r(89, "宵三紅", "bear", "evening_three_red", -18, "多方末端勉強上攻，若後續轉黑，偏空。"),
+ r(90, "雙鴉跳空", "bear", "two_crows_gap", -20, "跳空後連續黑 K 壓回，代表上攻失敗。"),
+ r(91, "空頭遭遇", "bear", "bearish_meeting", -18, "高檔平盤附近遭遇賣壓，多方攻勢受阻。"),
+ r(92, "劍空包容線", "bear", "bear_engulf_variant", -20, "高檔包容線轉弱，空方接手。"),
+ r(93, "走跌停勢", "bear", "limit_down_like", -24, "連續急跌或接近跌停走勢，需防慣性下殺。"),
+ r(94, "下跌三法", "bear", "falling_three_methods", -22, "下跌中繼整理後再跌，空方延續。"),
+ r(95, "空頭三明治", "bear", "bear_sandwich", -22, "黑紅黑結構若在跌勢或反彈末端，代表反彈失敗。")
+];
 
 function runAnalysis(data, stockId) {
  const reportList = document.getElementById("reportList");
  reportList.innerHTML = "";
 
- if (stockId === "8913") {
-  reportList.innerHTML =
-   '<div class="item sell">' +
-   '<div class="date">方天龍原著 • 單元 76 一瀉千里</div>' +
-   '<div class="name">🚨 天天漲，總會有一天，天天跌！連續跳空漲停之後突然打開</div>' +
-   '<div class="desc"><b>大師原創心法：</b>「全銓(8913)是2018年股價的一個驚奇！股價由最低點的 17.68 元一路飆上 90.4 元，這就是驚訝的『一瀉千里』圖譜，說明了股價『怎麼上去，就怎麼下來』。天天漲停板上去，早晚有那麼一天，也會天天跌下來。型態一完成，行情必然直線墜落！那要你當捨則捨，請火速停損、逃命離場！」</div>' +
-   '</div>';
-  addLog("✓ 成功判定單元 76 【一瀉千里】書本案例");
-  return;
- }
+ const signals = analyzeFangTianLongV1(data);
+ let bullScore = 0;
+ let bearScore = 0;
 
- if (stockId === "2409") {
-  reportList.innerHTML =
-   '<div class="item sell">' +
-   '<div class="date">方天龍原著 • 單元 95 兩陰夾一陽哭爹叫娘</div>' +
-   '<div class="name">🚨 空頭三明治中繼加速：跌得呼爹叫娘！K線的長短很重要</div>' +
-   '<div class="desc"><b>大師原創心法：</b>「這是『友達』(2409)的『空頭三明治』K線組合。圖中的①和②合併形成『多頭孕母子線』，②和③組合合併形成『空頭包絡線』。在跌勢中，出現這檔K線組合，別有一番下跌的空間。中間小紅K身軀精密內困，其後行情果然盤旋向下一跌了！這屬於最高規格的順勢放空點與逃頂訊號！」</div>' +
-   '</div>';
-  addLog("✓ 成功判定單元 95 【空頭三明治】書本案例");
-  return;
- }
-
- if (stockId === "3406") {
-  reportList.innerHTML =
-   '<div class="item sell">' +
-   '<div class="date">方天龍原著 • 單元 91 空頭遭遇遇見阿飄</div>' +
-   '<div class="name">🚨 空頭遭遇，是不對等的合作！隔日沖大戶出貨，股價容易回到原點</div>' +
-   '<div class="desc"><b>大師原創心法：</b>「這是『玉晶光』(3406)的『空頭遭遇線』。圖中的收盤價精密對齊平盤。這讓人想起『企業合併』的寓言：藉要求和諧合作拉高，實則大戶故意開高拉盤，火速出清逃頂。表面看來平盤有撐，實則多頭上攻的信心已被主力一口氣吸乾！後續股價極易一瀉千里回到原點！」</div>' +
-   '</div>';
-  addLog("✓ 成功判定單元 91 【空頭遭遇線】書本案例");
-  return;
- }
-
- const signals = [];
-
- for (let i = data.length - 1; i >= 2; i--) {
-  const curr = data[i];
-  const prev = data[i - 1];
-  const prev2 = data[i - 2];
-
-  const change = ((curr.close - prev.close) / prev.close) * 100;
-  const body = Math.abs(curr.close - curr.open);
-  const range = curr.high - curr.low;
-  const isRed = curr.close > curr.open;
-  const isGreen = curr.close < curr.open;
-
-  if (prev.close < prev.ma20 && curr.close > curr.ma20) {
-   signals.push({
-    type: "buy",
-    date: curr.time,
-    name: "突破 MA20 生命線",
-    desc: "收盤價站上 MA20，短線轉強。漲跌幅：" + change.toFixed(2) + "%"
-   });
+ for (let i = 0; i < signals.length; i++) {
+  if (signals[i].score > 0) {
+   bullScore += signals[i].score;
   }
-
-  if (prev.close > prev.ma20 && curr.close < curr.ma20) {
-   signals.push({
-    type: "sell",
-    date: curr.time,
-    name: "跌破 MA20 生命線",
-    desc: "收盤價跌破 MA20，短線轉弱。漲跌幅：" + change.toFixed(2) + "%"
-   });
-  }
-
-  if (curr.close > curr.ma20 && curr.ma20 > curr.ma60) {
-   signals.push({
-    type: "buy",
-    date: curr.time,
-    name: "多頭排列",
-    desc: "股價 > MA20 > MA60，趨勢偏多。"
-   });
-  }
-
-  if (curr.close < curr.ma20 && curr.ma20 < curr.ma60) {
-   signals.push({
-    type: "sell",
-    date: curr.time,
-    name: "空頭排列",
-    desc: "股價 < MA20 < MA60，趨勢偏空。"
-   });
-  }
-
-  if (isRed && range > 0 && body / range > 0.65 && change > 2) {
-   signals.push({
-    type: "master",
-    date: curr.time,
-    name: "長紅攻擊K",
-    desc: "紅K實體較大，代表買盤主動推升。"
-   });
-  }
-
-  if (isGreen && range > 0 && body / range > 0.65 && change < -2) {
-   signals.push({
-    type: "master",
-    date: curr.time,
-    name: "長黑破壞K",
-    desc: "黑K實體較大，代表賣壓明顯。"
-   });
-  }
-
-  if (
-   prev2.close < prev2.open &&
-   prev.close > prev.open &&
-   curr.close < curr.open
-  ) {
-   signals.push({
-    type: "sell",
-    date: curr.time,
-    name: "空頭三明治",
-    desc: "黑紅黑結構，短線有轉弱風險。"
-   });
-  }
-
-  if (signals.length >= 25) {
-   break;
+  if (signals[i].score < 0) {
+   bearScore += Math.abs(signals[i].score);
   }
  }
+
+ renderSummary(bullScore, bearScore, signals.length);
 
  if (signals.length === 0) {
   reportList.innerHTML =
    '<div class="item"><div class="name">目前無明顯訊號</div><div class="desc">尚未偵測到明確多空型態。</div></div>';
-  return;
+  return { bullScore: bullScore, bearScore: bearScore };
  }
 
  for (let i = 0; i < signals.length; i++) {
@@ -897,7 +1120,280 @@ function runAnalysis(data, stockId) {
   reportList.appendChild(div);
  }
 
- addLog("✓ 偵測到 " + signals.length + " 筆訊號");
+ addLog("✓ 方天龍 01～95 規則庫命中 " + signals.length + " 筆訊號");
+
+ return { bullScore: bullScore, bearScore: bearScore };
+}
+
+function renderSummary(bullScore, bearScore, count) {
+ let bias = "盤整觀察";
+ let color = "#ff9100";
+
+ if (bullScore > bearScore * 1.25) {
+  bias = "多方優勢";
+  color = "#ef5350";
+ } else if (bearScore > bullScore * 1.25) {
+  bias = "空方優勢";
+  color = "#26a69a";
+ }
+
+ document.getElementById("summaryBox").innerHTML =
+  '<div class="summary-card" style="border-left-color:' + color + '">' +
+  '<div class="label">綜合方向</div>' +
+  '<div class="value">' + bias + '</div>' +
+  '</div>' +
+  '<div class="summary-card">' +
+  '<div class="label">多方分數</div>' +
+  '<div class="value">' + bullScore + '</div>' +
+  '</div>' +
+  '<div class="summary-card">' +
+  '<div class="label">空方分數 / 命中</div>' +
+  '<div class="value">' + bearScore + " / " + count + '</div>' +
+  '</div>';
+}
+
+function analyzeFangTianLongV1(data) {
+ const signals = [];
+
+ if (!data || data.length < 60) {
+  return signals;
+ }
+
+ for (let i = 2; i < data.length; i++) {
+  const curr = data[i];
+  const prev = data[i - 1];
+  const prev2 = data[i - 2];
+
+  const trend = getTrendContext(data, i);
+  const candle = getCandleInfo(curr);
+
+  if (curr.low > prev.high) {
+   pushSignal(signals, 4, curr, "今日低點高於昨日高點，形成向上跳空缺口。若後續不回補，偏多力道較強。");
+  }
+
+  if (curr.high < prev.low) {
+   pushSignal(signals, 7, curr, "今日高點低於昨日低點，形成向下跳空缺口。若反彈無法回補，偏空。");
+  }
+
+  if (prev.close <= prev.ma20 && curr.close > curr.ma20) {
+   pushSignal(signals, 29, curr, "收盤重新站上 MA20，短線生命線轉強。");
+  }
+
+  if (prev.close >= prev.ma20 && curr.close < curr.ma20) {
+   pushSignal(signals, 58, curr, "收盤跌破 MA20，短線轉弱，需觀察是否能快速站回。");
+  }
+
+  if (curr.close > curr.ma20 && curr.ma20 > curr.ma60) {
+   pushSignal(signals, 32, curr, "股價 > MA20 > MA60，趨勢結構偏多。");
+  }
+
+  if (curr.close < curr.ma20 && curr.ma20 < curr.ma60) {
+   pushSignal(signals, 72, curr, "股價 < MA20 < MA60，趨勢結構偏空。");
+  }
+
+  if (candle.isBull && candle.bodyRatio > 0.65 && candle.changePct > 2) {
+   pushSignal(signals, 11, curr, "出現長紅 K，買盤力道明顯。若搭配放量，攻擊力更強。");
+  }
+
+  if (candle.isBear && candle.bodyRatio > 0.65 && candle.changePct < -2) {
+   pushSignal(signals, 11, curr, "出現長黑 K，賣壓明顯。若在高檔區，需防轉弱。");
+  }
+
+  if (trend === "low" && candle.lowerShadowRatio > 0.55 && candle.bodyRatio < 0.35) {
+   pushSignal(signals, 25, curr, "低檔出現長下影小實體，代表下方承接力浮現。");
+  }
+
+  if (trend === "high" && candle.upperShadowRatio > 0.55 && candle.bodyRatio < 0.35) {
+   pushSignal(signals, 86, curr, "高檔出現長上影，代表上攻遇壓。");
+  }
+
+  if (candle.bodyRatio < 0.12) {
+   if (trend === "high") {
+    pushSignal(signals, 20, curr, "高檔十字線代表多空猶豫，若隔日轉弱需小心。");
+   } else if (trend === "low") {
+    pushSignal(signals, 19, curr, "低檔十字線代表殺盤鈍化，需隔日紅 K 確認。");
+   } else {
+    pushSignal(signals, 17, curr, "十字線代表多空拉鋸，需等待下一根確認方向。");
+   }
+  }
+
+  if (
+   prev.close < prev.open &&
+   curr.close > curr.open &&
+   curr.close > prev.open &&
+   curr.open < prev.close
+  ) {
+   pushSignal(signals, 50, curr, "紅 K 包覆前一根黑 K，若在低檔出現，偏多反轉機率提高。");
+  }
+
+  if (
+   prev.close > prev.open &&
+   curr.close < curr.open &&
+   curr.open > prev.close &&
+   curr.close < prev.open
+  ) {
+   pushSignal(signals, 78, curr, "黑 K 包覆前一根紅 K，代表賣壓轉強。");
+  }
+
+  if (
+   curr.close > curr.open &&
+   prev.close > prev.open &&
+   prev2.close > prev2.open &&
+   curr.close > prev.close &&
+   prev.close > prev2.close
+  ) {
+   pushSignal(signals, 45, curr, "連續三根紅 K 向上推進，多方攻擊力增強。");
+  }
+
+  if (
+   curr.close < curr.open &&
+   prev.close < prev.open &&
+   prev2.close < prev2.open &&
+   curr.close < prev.close &&
+   prev.close < prev2.close
+  ) {
+   pushSignal(signals, 84, curr, "連續三根黑 K 下壓，空方主導力增強。");
+  }
+
+  if (
+   prev2.close < prev2.open &&
+   prev.close > prev.open &&
+   curr.close < curr.open &&
+   curr.close < prev.close
+  ) {
+   pushSignal(signals, 95, curr, "黑紅黑結構出現，若在跌勢或反彈末端，代表反彈失敗風險。");
+  }
+
+  if (
+   curr.close > prev.close &&
+   prev.close > prev2.close &&
+   curr.low >= prev.low &&
+   prev.low >= prev2.low
+  ) {
+   pushSignal(signals, 67, curr, "收盤與低點逐步墊高，形成起漲階梯結構。");
+  }
+
+  if (isTripleTop(data, i)) {
+   pushSignal(signals, 75, curr, "近期多次挑戰高點未過，需防形成高檔壓力。");
+  }
+
+  const box = getBoxBreak(data, i);
+  if (box === "up") {
+   pushSignal(signals, 40, curr, "突破近期箱型上緣，偏多觀察。");
+  } else if (box === "down") {
+   pushSignal(signals, 40, curr, "跌破近期箱型下緣，偏空觀察。");
+  }
+ }
+
+ return mergeAndSortSignals(signals);
+}
+
+function pushSignal(signals, ruleId, candle, extraText) {
+ const rule = FTL_RULES.find(function(x) {
+  return x.id === ruleId;
+ });
+
+ if (!rule) return;
+
+ signals.push({
+  id: rule.id,
+  type: rule.bias === "bull" ? "buy" : rule.bias === "bear" ? "sell" : "master",
+  date: candle.time,
+  name: "單元 " + String(rule.id).padStart(2, "0") + "｜" + rule.name,
+  desc: extraText + "｜分數：" + rule.score + "｜" + rule.msg,
+  score: rule.score
+ });
+}
+
+function getCandleInfo(d) {
+ const range = Math.max(d.high - d.low, 0.0001);
+ const body = Math.abs(d.close - d.open);
+ const upperShadow = d.high - Math.max(d.open, d.close);
+ const lowerShadow = Math.min(d.open, d.close) - d.low;
+
+ return {
+  isBull: d.close > d.open,
+  isBear: d.close < d.open,
+  bodyRatio: body / range,
+  upperShadowRatio: upperShadow / range,
+  lowerShadowRatio: lowerShadow / range,
+  changePct: ((d.close - d.open) / d.open) * 100
+ };
+}
+
+function getTrendContext(data, i) {
+ const start = Math.max(0, i - 60);
+ const section = data.slice(start, i + 1);
+
+ const highs = section.map(function(d) { return d.high; });
+ const lows = section.map(function(d) { return d.low; });
+
+ const maxHigh = Math.max.apply(null, highs);
+ const minLow = Math.min.apply(null, lows);
+
+ const curr = data[i];
+ const pos = (curr.close - minLow) / Math.max(maxHigh - minLow, 0.0001);
+
+ if (pos > 0.75) return "high";
+ if (pos < 0.25) return "low";
+ return "middle";
+}
+
+function isTripleTop(data, i) {
+ if (i < 40) return false;
+
+ const recent = data.slice(i - 40, i + 1);
+ const currHigh = data[i].high;
+
+ let touchCount = 0;
+
+ for (let j = 0; j < recent.length; j++) {
+  const diff = Math.abs(recent[j].high - currHigh) / currHigh;
+
+  if (diff < 0.025) {
+   touchCount++;
+  }
+ }
+
+ return touchCount >= 3;
+}
+
+function getBoxBreak(data, i) {
+ if (i < 30) return "";
+
+ const prevRange = data.slice(i - 30, i);
+ const highs = prevRange.map(function(d) { return d.high; });
+ const lows = prevRange.map(function(d) { return d.low; });
+
+ const boxHigh = Math.max.apply(null, highs);
+ const boxLow = Math.min.apply(null, lows);
+ const curr = data[i];
+
+ if (curr.close > boxHigh) return "up";
+ if (curr.close < boxLow) return "down";
+
+ return "";
+}
+
+function mergeAndSortSignals(signals) {
+ const map = {};
+ const result = [];
+
+ for (let i = signals.length - 1; i >= 0; i--) {
+  const s = signals[i];
+  const key = s.id + "_" + s.date;
+
+  if (!map[key]) {
+   map[key] = true;
+   result.push(s);
+  }
+ }
+
+ result.sort(function(a, b) {
+  return Math.abs(b.score) - Math.abs(a.score);
+ });
+
+ return result.slice(0, 35);
 }
 
 function drawChart(data) {
@@ -910,7 +1406,7 @@ function drawChart(data) {
 
  ctx.clearRect(0, 0, w, h);
 
- const visible = data.slice(-80);
+ const visible = data.slice(-90);
  const prices = [];
 
  for (let i = 0; i < visible.length; i++) {
@@ -997,11 +1493,8 @@ function drawLine(ctx, data, key, getX, getY, color) {
 
  ctx.stroke();
 }
-
-function round2(num) {
- return Math.round(num * 100) / 100;
-}
 </script>
 
 </body>
-</html>
+</html>`;
+}
