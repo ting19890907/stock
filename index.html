@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>方天龍 K 線精準判讀全自動系統</title>
+
 <style>
 body {
  background-color: #131722;
@@ -11,16 +12,19 @@ body {
  padding: 20px;
  margin: 0;
 }
+
 .container {
  max-width: 1400px;
  margin: 0 auto;
 }
+
 .header {
  background: #1c2030;
  padding: 20px;
  border-radius: 8px;
  margin-bottom: 20px;
 }
+
 .search-box {
  background: #1c2030;
  padding: 18px;
@@ -31,6 +35,7 @@ body {
  align-items: center;
  flex-wrap: wrap;
 }
+
 input {
  background: #24293e;
  border: 1px solid #3b415a;
@@ -42,6 +47,7 @@ input {
  text-align: center;
  font-weight: bold;
 }
+
 button {
  background: #2962ff;
  color: #fff;
@@ -52,25 +58,30 @@ button {
  font-weight: bold;
  font-size: 14px;
 }
+
 button:hover {
  background: #1a50dd;
 }
+
 .layout {
  display: grid;
  grid-template-columns: 1.6fr 1fr;
  gap: 20px;
 }
+
 @media (max-width: 1050px) {
  .layout {
- grid-template-columns: 1fr;
+  grid-template-columns: 1fr;
  }
 }
+
 .card {
  background-color: #1c2030;
  border-radius: 8px;
  padding: 22px;
  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
 }
+
 .title {
  font-size: 18px;
  font-weight: bold;
@@ -79,11 +90,13 @@ button:hover {
  border-left: 5px solid #2962ff;
  padding-left: 12px;
 }
+
 .signal-list {
  max-height: 550px;
  overflow-y: auto;
  padding-right: 5px;
 }
+
 .item {
  background: #24293e;
  padding: 15px;
@@ -92,30 +105,37 @@ button:hover {
  border-left: 5px solid #787b86;
  line-height: 1.6;
 }
+
 .item.buy {
  border-left-color: #ef5350;
 }
+
 .item.sell {
  border-left-color: #26a69a;
 }
+
 .item.master {
  border-left-color: #ff9100;
 }
+
 .date {
  font-size: 12px;
  color: #787b86;
  font-weight: bold;
 }
+
 .name {
  font-weight: bold;
  color: #fff;
  margin: 4px 0;
  font-size: 15px;
 }
+
 .desc {
  font-size: 13px;
  color: #b2b5be;
 }
+
 canvas {
  background: #161925;
  border-radius: 4px;
@@ -123,10 +143,12 @@ canvas {
  width: 100%;
  max-width: 100%;
 }
+
 .loading {
  color: #26a69a;
  font-weight: bold;
 }
+
 .progress-container {
  background: #24293e;
  border-radius: 20px;
@@ -137,12 +159,14 @@ canvas {
  border: 1px solid #3b415a;
  position: relative;
 }
+
 .progress-bar {
  background: linear-gradient(90deg, #2962ff, #00e676);
  width: 0%;
  height: 100%;
  transition: width 0.15s ease;
 }
+
 .progress-text {
  position: absolute;
  width: 100%;
@@ -153,6 +177,7 @@ canvas {
  line-height: 24px;
  top: 0;
 }
+
 .log-panel {
  background: #000;
  color: #00ff00;
@@ -163,180 +188,573 @@ canvas {
  max-height: 150px;
  overflow-y: auto;
 }
+
 .log-err {
  color: #ff0000;
  font-weight: bold;
 }
 </style>
 </head>
+
 <body>
+
 <div class="container">
+
  <div class="header">
- <h2 style="color:#fff; margin:0 0 5px 0;">方天龍 K 線精準判讀全自動系統</h2>
- <p style="color:#26a69a; font-weight:bold; margin:0;">✓ 修正版：按鈕可正常觸發、圖表可正常顯示</p>
+  <h2 style="color:#fff; margin:0 0 5px 0;">方天龍 K 線精準判讀全自動系統</h2>
+  <p style="color:#26a69a; font-weight:bold; margin:0;">✓ 單檔版：不用 Node.js、不用多檔案，直接 HTML 連 Google AI</p>
  </div>
+
  <div class="search-box">
- <label style="color:#fff; font-weight:bold;">台股個股代號：</label>
- <input type="text" id="stockId" value="2354" placeholder="例如: 2354">
- <button type="button" onclick="executeGrandMasterSearch()">發動 1-95單元 全自動即時解碼</button>
- <span id="stockStatus" class="loading">✓ 核心已就緒</span>
+  <label style="color:#fff; font-weight:bold;">台股個股代號：</label>
+  <input type="text" id="stockId" value="2354" placeholder="例如: 2354">
+  <button type="button" onclick="executeGrandMasterSearch()">發動 1-95單元 全自動即時解碼</button>
+  <span id="stockStatus" class="loading">✓ 核心已就緒</span>
  </div>
+
  <div class="card" style="margin-bottom: 20px; padding: 15px 22px;">
- <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:5px;">
- <span>大師矩陣核心計算進度條</span>
- <span id="stepStatus" style="color:#00e676;">等待發動指令...</span>
+  <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:5px;">
+   <span>大師矩陣核心計算進度條</span>
+   <span id="stepStatus" style="color:#00e676;">等待發動指令...</span>
+  </div>
+  <div class="progress-container">
+   <div id="myBar" class="progress-bar"></div>
+   <div id="myText" class="progress-text">0%</div>
+  </div>
  </div>
- <div class="progress-container">
- <div id="myBar" class="progress-bar"></div>
- <div id="myText" class="progress-text">0%</div>
- </div>
- </div>
+
  <div class="layout">
- <div class="card">
- <div class="title" id="chartTitle">大師級技術線圖</div>
- <canvas id="stockCanvas" width="800" height="480"></canvas>
+  <div class="card">
+   <div class="title" id="chartTitle">大師級技術線圖</div>
+   <canvas id="stockCanvas" width="800" height="480"></canvas>
+  </div>
+
+  <div class="card">
+   <div class="title">AI 多空量化報告</div>
+   <div class="signal-list" id="reportList">請點擊藍色按鈕開始分析。</div>
+  </div>
  </div>
- <div class="card">
- <div class="title">AI 多空量化報告</div>
- <div class="signal-list" id="reportList">請點擊藍色按鈕開始分析。</div>
- </div>
- </div>
+
  <div class="card" style="margin-top:20px;">
- <div class="title" style="border-left-color: #00ff00;">AI 運作步驟日誌監控面板</div>
- <div id="debugLog" class="log-panel">網頁載入中...</div>
+  <div class="title" style="border-left-color: #00ff00;">AI 運作步驟日誌監控面板</div>
+  <div id="debugLog" class="log-panel">網頁載入中...</div>
  </div>
+
 </div>
+
 <script>
+/*
+  這裡貼你的 Google AI API Key
+  注意：單一 HTML 版本會讓 API Key 暴露在前端，只建議自己電腦測試用。
+*/
+const GOOGLE_API_KEY = "請貼上你的Google_AI_API_KEY";
+
+/*
+  這裡可換模型：
+  gemini-1.5-flash
+  gemini-1.5-pro
+  gemini-2.0-flash
+  gemini-2.5-flash
+*/
+const GOOGLE_MODEL = "gemini-1.5-flash";
+
 function updateProgress(percent, text) {
  document.getElementById("myBar").style.width = percent + "%";
  document.getElementById("myText").innerText = percent + "%";
  document.getElementById("stepStatus").innerText = text;
 }
+
 function addLog(msg, isError) {
  const logBox = document.getElementById("debugLog");
  const time = new Date().toLocaleTimeString();
  const div = document.createElement("div");
- if (isError) { div.className = "log-err"; }
+
+ if (isError) {
+  div.className = "log-err";
+ }
+
  div.textContent = "[" + time + "] " + msg;
  logBox.appendChild(div);
  logBox.scrollTop = logBox.scrollHeight;
 }
+
+function escapeHtml(text) {
+ return String(text)
+  .replaceAll("&", "&amp;")
+  .replaceAll("<", "&lt;")
+  .replaceAll(">", "&gt;")
+  .replaceAll('"', "&quot;")
+  .replaceAll("'", "&#039;");
+}
+
 document.addEventListener("DOMContentLoaded", function() {
  document.getElementById("debugLog").innerHTML = "";
  addLog("✓ 網頁已正常載入");
  updateProgress(0, "初始化完成");
+
  setTimeout(function() {
- executeGrandMasterSearch();
+  executeGrandMasterSearch();
  }, 300);
 });
 
-// 🌟 100% 沿用 GPT 成功的原生連線控制流程
-function executeGrandMasterSearch() {
+/*
+  單檔版 Google AI 連線函數
+  只負責連線，不改你的股票判斷邏輯
+*/
+async function callGoogleAI(prompt) {
  try {
- updateProgress(5, "正在讀取股票代號...");
- addLog("▶ 按鈕已成功觸發");
- const stockId = document.getElementById("stockId").value.trim();
- if (stockId === "") {
- addLog("❌ 股票代號不可空白", true);
- updateProgress(0, "請輸入股票代號");
- return;
- }
- document.getElementById("chartTitle").innerText = "技術線圖 台股 " + stockId + " [藍:MA20 | 橘:MA60]";
- updateProgress(20, "正在建立模擬歷史 K 線資料...");
- addLog("✓ 鎖定股票代號：" + stockId);
- const basePrice = getBasePrice(stockId);
- const data = buildStockData(basePrice);
- updateProgress(45, "正在計算 MA20 / MA60...");
- calcMA(data);
- updateProgress(65, "正在進行多空型態判讀...");
- runAnalysis(data, stockId); // 傳入 stockId 進行大師專屬判讀
- updateProgress(85, "正在繪製 K 線圖...");
- drawChart(data);
- updateProgress(100, "分析完成");
- addLog("✓ 分析完成");
+  if (!GOOGLE_API_KEY || GOOGLE_API_KEY === "請貼上你的Google_AI_API_KEY") {
+   throw new Error("尚未填入 Google AI API Key");
+  }
+
+  addLog("▶ 正在連線 Google AI...");
+
+  const url =
+   "https://generativelanguage.googleapis.com/v1beta/models/" +
+   GOOGLE_MODEL +
+   ":generateContent?key=" +
+   GOOGLE_API_KEY;
+
+  const response = await fetch(url, {
+   method: "POST",
+   headers: {
+    "Content-Type": "application/json"
+   },
+   body: JSON.stringify({
+    contents: [
+     {
+      parts: [
+       {
+        text: prompt
+       }
+      ]
+     }
+    ]
+   })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+   let msg = "Google AI 回傳錯誤";
+   if (data && data.error && data.error.message) {
+    msg = data.error.message;
+   }
+   throw new Error(msg);
+  }
+
+  let text = "";
+
+  if (
+   data &&
+   data.candidates &&
+   data.candidates[0] &&
+   data.candidates[0].content &&
+   data.candidates[0].content.parts &&
+   data.candidates[0].content.parts[0] &&
+   data.candidates[0].content.parts[0].text
+  ) {
+   text = data.candidates[0].content.parts[0].text;
+  } else {
+   text = "Google AI 有回傳，但沒有文字內容。";
+  }
+
+  addLog("✓ Google AI 已成功回傳");
+  return text;
+
  } catch (err) {
- addLog("❌ 錯誤：" + err.message, true);
- updateProgress(0, "系統錯誤");
- console.error(err);
+  addLog("❌ Google AI 連線失敗：" + err.message, true);
+
+  return (
+   "❌ Google AI 連線失敗：" + err.message + "\n\n" +
+   "請檢查：\n" +
+   "1. GOOGLE_API_KEY 是否已貼上\n" +
+   "2. API Key 是否有效\n" +
+   "3. Google AI Studio 是否有啟用 Gemini API\n" +
+   "4. 模型名稱是否正確\n" +
+   "5. 如果瀏覽器擋住 CORS，請改用後端版"
+  );
  }
 }
 
-// 100% 沿用 GPT 連線底座函數
+async function executeGrandMasterSearch() {
+ try {
+  updateProgress(5, "正在讀取股票代號...");
+  addLog("▶ 按鈕已成功觸發");
+
+  const stockId = document.getElementById("stockId").value.trim();
+
+  if (stockId === "") {
+   addLog("❌ 股票代號不可空白", true);
+   updateProgress(0, "請輸入股票代號");
+   return;
+  }
+
+  document.getElementById("chartTitle").innerText =
+   "技術線圖 台股 " + stockId + " [藍:MA20 | 橘:MA60]";
+
+  updateProgress(20, "正在建立模擬歷史 K 線資料...");
+  addLog("✓ 鎖定股票代號：" + stockId);
+
+  const basePrice = getBasePrice(stockId);
+  const data = buildStockData(basePrice);
+
+  updateProgress(45, "正在計算 MA20 / MA60...");
+  calcMA(data);
+
+  updateProgress(65, "正在進行多空型態判讀...");
+  runAnalysis(data, stockId);
+
+  updateProgress(75, "正在連線 Google AI...");
+
+  const originalReport = document.getElementById("reportList").innerText;
+
+  const googlePrompt =
+   "你是台股K線分析助理。請只根據以下本系統已產生的判讀報告，做補充說明與風險提醒。" +
+   "不要改變原本判斷邏輯，不要保證漲跌，不要叫使用者一定買或一定賣。\n\n" +
+   "股票代號：" + stockId + "\n\n" +
+   "本系統原始判讀：\n" + originalReport;
+
+  const googleResult = await callGoogleAI(googlePrompt);
+
+  document.getElementById("reportList").innerHTML +=
+   '<div class="item master">' +
+   '<div class="date">Google AI 連線回傳</div>' +
+   '<div class="name">Gemini 補充說明</div>' +
+   '<div class="desc">' + escapeHtml(googleResult).replace(/\n/g, "<br>") + '</div>' +
+   '</div>';
+
+  updateProgress(85, "正在繪製 K 線圖...");
+  drawChart(data);
+
+  updateProgress(100, "分析完成");
+  addLog("✓ 分析完成");
+
+ } catch (err) {
+  addLog("❌ 錯誤：" + err.message, true);
+  updateProgress(0, "系統錯誤");
+  console.error(err);
+ }
+}
+
 function getBasePrice(stockId) {
  if (stockId === "2330") return 920;
  if (stockId === "2317") return 185;
  if (stockId === "3406") return 365;
  if (stockId === "2409") return 18;
+
  let hash = 0;
- for (let i = 0; i < stockId.length; i++) { hash += stockId.charCodeAt(i); }
+
+ for (let i = 0; i < stockId.length; i++) {
+  hash += stockId.charCodeAt(i);
+ }
+
  return hash % 150 + 20;
 }
 
-// 100% 沿用 GPT 連線底座函數
 function buildStockData(basePrice) {
- const data = []; const today = new Date();
+ const data = [];
+ const today = new Date();
+
  for (let i = 100; i >= 0; i--) {
- const d = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
- const dateStr = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
- let wave = Math.sin(i * 0.22) * basePrice * 0.1;
- let trend = (100 - i) * basePrice * 0.0015;
- let close = basePrice + wave + trend;
- let open = close + (Math.random() - 0.5) * basePrice * 0.03;
- let high = Math.max(open, close) + Math.random() * basePrice * 0.02;
- let low = Math.min(open, close) - Math.random() * basePrice * 0.02;
- data.push({ time: dateStr, open: round2(open), high: round2(high), low: round2(low), close: round2(close) });
+  const d = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
+
+  const dateStr =
+   d.getFullYear() + "-" +
+   String(d.getMonth() + 1).padStart(2, "0") + "-" +
+   String(d.getDate()).padStart(2, "0");
+
+  let wave = Math.sin(i * 0.22) * basePrice * 0.1;
+  let trend = (100 - i) * basePrice * 0.0015;
+  let close = basePrice + wave + trend;
+  let open = close + (Math.random() - 0.5) * basePrice * 0.03;
+  let high = Math.max(open, close) + Math.random() * basePrice * 0.02;
+  let low = Math.min(open, close) - Math.random() * basePrice * 0.02;
+
+  data.push({
+   time: dateStr,
+   open: round2(open),
+   high: round2(high),
+   low: round2(low),
+   close: round2(close)
+  });
  }
+
  return data;
 }
 
-// 100% 沿用 GPT 連線底座函數
 function calcMA(data) {
  for (let i = 0; i < data.length; i++) {
- let sum20 = 0; let count20 = 0;
- for (let j = Math.max(0, i - 19); j <= i; j++) { sum20 += data[j].close; count20++; }
- data[i].ma20 = sum20 / count20;
- let sum60 = 0; let count60 = 0;
- for (let k = Math.max(0, i - 59); k <= i; k++) { sum60 += data[k].close; count60++; }
- data[i].ma60 = sum60 / count60;
+  let sum20 = 0;
+  let count20 = 0;
+
+  for (let j = Math.max(0, i - 19); j <= i; j++) {
+   sum20 += data[j].close;
+   count20++;
+  }
+
+  data[i].ma20 = sum20 / count20;
+
+  let sum60 = 0;
+  let count60 = 0;
+
+  for (let k = Math.max(0, i - 59); k <= i; k++) {
+   sum60 += data[k].close;
+   count60++;
+  }
+
+  data[i].ma60 = sum60 / count60;
  }
+
  addLog("✓ 均線計算完成");
 }
 
-// 🌟 核心修正：我只負責在這個判讀裁判函數裡，精密寫入您拍照上傳的 1-95 單元書本經典報告！
 function runAnalysis(data, stockId) {
  const reportList = document.getElementById("reportList");
  reportList.innerHTML = "";
- 
- // 🚀 1. 單元 76 全銓 (8913) 書本對焦
+
  if (stockId === "8913") {
- reportList.innerHTML = `<div class="item sell"><div class="date">方天龍原著 • 單元 76 一瀉千里</div><div class="name">🚨 天天漲，總會有一天，天天跌！連續跳空漲停之後突然打開</div><div class="desc"><b>大師原創心法：</b>「全銓(8913)是2018年股價的一個驚奇！股價由最低點的 17.68 元一路飆上 90.4 元，這就是驚訝的『一瀉千里』圖譜，說明了股價『怎麼上去，就怎麼下來』。天天漲停板上去，早晚有那麼一天，也會天天跌下來。型態一完成，行情必然直線墜落！那要你當捨則捨，請火速停損、逃命離場！」</div></div>`;
- addLog("✓ 成功判定單元 76 【一瀉千里】書本案例");
- return;
+  reportList.innerHTML =
+   '<div class="item sell">' +
+   '<div class="date">方天龍原著 • 單元 76 一瀉千里</div>' +
+   '<div class="name">🚨 天天漲，總會有一天，天天跌！連續跳空漲停之後突然打開</div>' +
+   '<div class="desc"><b>大師原創心法：</b>「全銓(8913)是2018年股價的一個驚奇！股價由最低點的 17.68 元一路飆上 90.4 元，這就是驚訝的『一瀉千里』圖譜，說明了股價『怎麼上去，就怎麼下來』。天天漲停板上去，早晚有那麼一天，也會天天跌下來。型態一完成，行情必然直線墜落！那要你當捨則捨，請火速停損、逃命離場！」</div>' +
+   '</div>';
+  addLog("✓ 成功判定單元 76 【一瀉千里】書本案例");
+  return;
  }
- 
- // 🚀 2. 單元 95 友達 (2409) 書本對焦
+
  if (stockId === "2409") {
- reportList.innerHTML = `<div class="item sell"><div class="date">方天龍原著 • 單元 95 兩陰夾一陽哭爹叫娘</div><div class="name">🚨 空頭三明治中繼加速：跌得呼爹叫娘！K線的長短很重要</div><div class="desc"><b>大師原創心法：</b>「這是『友達』(2409)的『空頭三明治』K線組合。圖中的①和②合併形成『多頭孕母子線』，②和③組合合併形成『空頭包絡線』。在跌勢中，出現這檔K線組合，別有一番下跌的空間。中間小紅K身軀精密內困，其後行情果然盤旋向下一跌了！這屬於最高規格的順勢放空點與逃頂訊號！」</div></div>`;
- addLog("✓ 成功判定單元 95 【空頭三明治】書本案例");
- return;
+  reportList.innerHTML =
+   '<div class="item sell">' +
+   '<div class="date">方天龍原著 • 單元 95 兩陰夾一陽哭爹叫娘</div>' +
+   '<div class="name">🚨 空頭三明治中繼加速：跌得呼爹叫娘！K線的長短很重要</div>' +
+   '<div class="desc"><b>大師原創心法：</b>「這是『友達』(2409)的『空頭三明治』K線組合。圖中的①和②合併形成『多頭孕母子線』，②和③組合合併形成『空頭包絡線』。在跌勢中，出現這檔K線組合，別有一番下跌的空間。中間小紅K身軀精密內困，其後行情果然盤旋向下一跌了！這屬於最高規格的順勢放空點與逃頂訊號！」</div>' +
+   '</div>';
+  addLog("✓ 成功判定單元 95 【空頭三明治】書本案例");
+  return;
  }
 
- // 🚀 3. 單元 91 玉晶光 (3406) 書本對焦
  if (stockId === "3406") {
- reportList.innerHTML = `<div class="item sell"><div class="date">方天龍原著 • 單元 91 空頭遭遇遇見阿飄</div><div class="name">🚨 空頭遭遇，是不對等的合作！隔日沖大戶出貨，股價容易回到原點</div><div class="desc"><b>大師原創心法：</b>「這是『玉晶光』(3406)的『空頭遭遇線』。圖中的收盤價精密對齊平盤。這讓人想起『企業合併』的寓言：藉要求和諧合作拉高，實則大戶故意開高拉盤，火速出清逃頂。表面看來平盤有撐，實則多頭上攻的信心已被主力一口氣吸乾！後續股價極易一瀉千里回到原點！」</div></div>`;
- addLog("✓ 成功判定單元 91 【空頭遭遇線】書本案例");
- return;
+  reportList.innerHTML =
+   '<div class="item sell">' +
+   '<div class="date">方天龍原著 • 單元 91 空頭遭遇遇見阿飄</div>' +
+   '<div class="name">🚨 空頭遭遇，是不對等的合作！隔日沖大戶出貨，股價容易回到原點</div>' +
+   '<div class="desc"><b>大師原創心法：</b>「這是『玉晶光』(3406)的『空頭遭遇線』。圖中的收盤價精密對齊平盤。這讓人想起『企業合併』的寓言：藉要求和諧合作拉高，實則大戶故意開高拉盤，火速出清逃頂。表面看來平盤有撐，實則多頭上攻的信心已被主力一口氣吸乾！後續股價極易一瀉千里回到原點！」</div>' +
+   '</div>';
+  addLog("✓ 成功判定單元 91 【空頭遭遇線】書本案例");
+  return;
  }
 
- // 🌟 其餘一般個股：完全完整保留 GPT 原本成功的長紅長黑、金叉死叉判讀代碼，100% 相容不衝突！
  const signals = [];
+
  for (let i = data.length - 1; i >= 2; i--) {
- const curr = data[i]; const prev = data[i - 1]; const prev2 = data[i - 2];
- const change = ((curr.close - prev.close) / prev.close) * 100;
- const body = Math.abs(curr.close - curr.open);
- const range = curr.high - curr.low;
- const isRed = curr.close > curr.open;
- const isGreen = curr.close < curr.open;
- if (prev.close < prev.ma20 && curr.close > curr.ma20) { signals.push({ type: "buy", date: curr.time, name: "突破 MA20 生命線", desc: "收盤價站上 MA20，短線轉強。漲跌幅：" + change.toFixed(2) + "%" }); }
- if (prev.close > prev.ma20 && curr.close < curr.ma20) { signals.push({ type: "sell", date: curr.time, name: "跌破 MA20 生命線", desc: "收盤價跌破 MA20，短線轉弱。漲跌幅：" + change.toFixed(2) + "%" }); }
- if (curr.close > curr.ma20 && curr.ma20 > curr.ma60) { signals.push({ type: "buy", date: curr.time, name: "多頭排列", desc: "股價 > MA20 > MA60，趨勢偏多。" }); }
+  const curr = data[i];
+  const prev = data[i - 1];
+  const prev2 = data[i - 2];
+
+  const change = ((curr.close - prev.close) / prev.close) * 100;
+  const body = Math.abs(curr.close - curr.open);
+  const range = curr.high - curr.low;
+  const isRed = curr.close > curr.open;
+  const isGreen = curr.close < curr.open;
+
+  if (prev.close < prev.ma20 && curr.close > curr.ma20) {
+   signals.push({
+    type: "buy",
+    date: curr.time,
+    name: "突破 MA20 生命線",
+    desc: "收盤價站上 MA20，短線轉強。漲跌幅：" + change.toFixed(2) + "%"
+   });
+  }
+
+  if (prev.close > prev.ma20 && curr.close < curr.ma20) {
+   signals.push({
+    type: "sell",
+    date: curr.time,
+    name: "跌破 MA20 生命線",
+    desc: "收盤價跌破 MA20，短線轉弱。漲跌幅：" + change.toFixed(2) + "%"
+   });
+  }
+
+  if (curr.close > curr.ma20 && curr.ma20 > curr.ma60) {
+   signals.push({
+    type: "buy",
+    date: curr.time,
+    name: "多頭排列",
+    desc: "股價 > MA20 > MA60，趨勢偏多。"
+   });
+  }
+
+  if (curr.close < curr.ma20 && curr.ma20 < curr.ma60) {
+   signals.push({
+    type: "sell",
+    date: curr.time,
+    name: "空頭排列",
+    desc: "股價 < MA20 < MA60，趨勢偏空。"
+   });
+  }
+
+  if (isRed && range > 0 && body / range > 0.65 && change > 2) {
+   signals.push({
+    type: "master",
+    date: curr.time,
+    name: "長紅攻擊K",
+    desc: "紅K實體較大，代表買盤主動推升。"
+   });
+  }
+
+  if (isGreen && range > 0 && body / range > 0.65 && change < -2) {
+   signals.push({
+    type: "master",
+    date: curr.time,
+    name: "長黑破壞K",
+    desc: "黑K實體較大，代表賣壓明顯。"
+   });
+  }
+
+  if (
+   prev2.close < prev2.open &&
+   prev.close > prev.open &&
+   curr.close < curr.open
+  ) {
+   signals.push({
+    type: "sell",
+    date: curr.time,
+    name: "空頭三明治",
+    desc: "黑紅黑結構，短線有轉弱風險。"
+   });
+  }
+
+  if (signals.length >= 25) {
+   break;
+  }
+ }
+
+ if (signals.length === 0) {
+  reportList.innerHTML =
+   '<div class="item"><div class="name">目前無明顯訊號</div><div class="desc">尚未偵測到明確多空型態。</div></div>';
+  return;
+ }
+
+ for (let i = 0; i < signals.length; i++) {
+  const s = signals[i];
+  const div = document.createElement("div");
+  div.className = "item " + s.type;
+
+  div.innerHTML =
+   '<div class="date">' + s.date + '</div>' +
+   '<div class="name">' + s.name + '</div>' +
+   '<div class="desc">' + s.desc + '</div>';
+
+  reportList.appendChild(div);
+ }
+
+ addLog("✓ 偵測到 " + signals.length + " 筆訊號");
+}
+
+function drawChart(data) {
+ const canvas = document.getElementById("stockCanvas");
+ const ctx = canvas.getContext("2d");
+
+ const w = canvas.width;
+ const h = canvas.height;
+ const padding = 50;
+
+ ctx.clearRect(0, 0, w, h);
+
+ const visible = data.slice(-80);
+ const prices = [];
+
+ for (let i = 0; i < visible.length; i++) {
+  prices.push(visible[i].high);
+  prices.push(visible[i].low);
+  prices.push(visible[i].ma20);
+  prices.push(visible[i].ma60);
+ }
+
+ const maxPrice = Math.max.apply(null, prices);
+ const minPrice = Math.min.apply(null, prices);
+ const range = maxPrice - minPrice || 1;
+
+ function getX(i) {
+  return padding + i * ((w - padding * 2) / visible.length);
+ }
+
+ function getY(price) {
+  return h - padding - ((price - minPrice) / range) * (h - padding * 2);
+ }
+
+ ctx.strokeStyle = "#2a2e39";
+ ctx.lineWidth = 1;
+
+ for (let i = 0; i <= 5; i++) {
+  const y = padding + i * ((h - padding * 2) / 5);
+
+  ctx.beginPath();
+  ctx.moveTo(padding, y);
+  ctx.lineTo(w - padding, y);
+  ctx.stroke();
+
+  const price = maxPrice - i * range / 5;
+  ctx.fillStyle = "#787b86";
+  ctx.font = "12px Arial";
+  ctx.fillText(price.toFixed(2), 8, y + 4);
+ }
+
+ const candleW = 6;
+
+ for (let i = 0; i < visible.length; i++) {
+  const d = visible[i];
+  const x = getX(i);
+
+  const openY = getY(d.open);
+  const closeY = getY(d.close);
+  const highY = getY(d.high);
+  const lowY = getY(d.low);
+
+  const up = d.close >= d.open;
+  ctx.strokeStyle = up ? "#ef5350" : "#26a69a";
+  ctx.fillStyle = up ? "#ef5350" : "#26a69a";
+
+  ctx.beginPath();
+  ctx.moveTo(x, highY);
+  ctx.lineTo(x, lowY);
+  ctx.stroke();
+
+  const top = Math.min(openY, closeY);
+  const height = Math.max(Math.abs(closeY - openY), 1);
+
+  ctx.fillRect(x - candleW / 2, top, candleW, height);
+ }
+
+ drawLine(ctx, visible, "ma20", getX, getY, "#2962ff");
+ drawLine(ctx, visible, "ma60", getX, getY, "#ff9800");
+}
+
+function drawLine(ctx, data, key, getX, getY, color) {
+ ctx.beginPath();
+ ctx.strokeStyle = color;
+ ctx.lineWidth = 2;
+
+ for (let i = 0; i < data.length; i++) {
+  const x = getX(i);
+  const y = getY(data[i][key]);
+
+  if (i === 0) {
+   ctx.moveTo(x, y);
+  } else {
+   ctx.lineTo(x, y);
+  }
+ }
+
+ ctx.stroke();
+}
+
+function round2(num) {
+ return Math.round(num * 100) / 100;
+}
+</script>
+
+</body>
+</html>
