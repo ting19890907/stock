@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>方天龍 K 線精準判讀全自動系統 V3</title>
+<title>方天龍 K 線精準判讀全自動系統 V4</title>
 <style>
 body {
  background-color: #131722;
@@ -80,7 +80,7 @@ button:hover {
  padding-left: 12px;
 }
 .signal-list {
- max-height: 590px;
+ max-height: 630px;
  overflow-y: auto;
  padding-right: 5px;
 }
@@ -216,22 +216,22 @@ canvas {
 <div class="container">
 
  <div class="header">
-  <h2 style="color:#fff; margin:0 0 5px 0;">方天龍 K 線精準判讀全自動系統 V3</h2>
+  <h2 style="color:#fff; margin:0 0 5px 0;">方天龍 K 線精準判讀全自動系統 V4</h2>
   <p style="color:#26a69a; font-weight:bold; margin:0;">
-   ✓ 真實 K 線資料 + 方天龍 01～95 規則庫 V3 + 最新收盤日分析 + 游標標示
+   ✓ 真實 K 線 + 方天龍 01～95 規則庫 + 最新收盤日 + 明日進場容許度 + 未來 3 天虛擬 K 線
   </p>
  </div>
 
  <div class="search-box">
   <label style="color:#fff; font-weight:bold;">台股個股代號：</label>
   <input type="text" id="stockId" value="2330" placeholder="例如: 3234">
-  <button type="button" onclick="executeGrandMasterSearch()">發動 V3 全自動即時解碼</button>
+  <button type="button" onclick="executeGrandMasterSearch()">發動 V4 全自動即時解碼</button>
   <span id="stockStatus" class="loading">✓ 核心已就緒</span>
  </div>
 
  <div class="card" style="margin-bottom: 20px; padding: 15px 22px;">
   <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:5px;">
-   <span>V3 矩陣核心計算進度條</span>
+   <span>V4 矩陣核心計算進度條</span>
    <span id="stepStatus" style="color:#00e676;">等待發動指令...</span>
   </div>
   <div class="progress-container">
@@ -247,7 +247,7 @@ canvas {
   </div>
 
   <div class="card">
-   <div class="title">V3 多空量化報告</div>
+   <div class="title">V4 多空量化報告</div>
    <div id="summaryBox" class="summary-box"></div>
    <div class="signal-list" id="reportList">請點擊藍色按鈕開始分析。</div>
   </div>
@@ -264,6 +264,7 @@ canvas {
 const WORKER_BASE_URL = "https://summer-frost-680d.puma19890907.workers.dev";
 
 let chartCache = null;
+let latestShortTermResult = null;
 
 function updateProgress(percent, text) {
  document.getElementById("myBar").style.width = percent + "%";
@@ -304,8 +305,7 @@ async function executeGrandMasterSearch() {
   }
 
   document.getElementById("chartTitle").innerText =
-   "技術線圖 台股 " + stockId + " [藍:MA20 | 橘:MA60]";
-
+   "技術線圖 台股 " + stockId + " [藍:MA20 | 橘:MA60 | 虛線:T+1~T+3]";
   document.getElementById("reportList").innerHTML = "";
   document.getElementById("summaryBox").innerHTML = "";
 
@@ -317,14 +317,14 @@ async function executeGrandMasterSearch() {
   updateProgress(42, "正在計算 MA / 量能 / 位置 / 趨勢...");
   calcIndicators(data);
 
-  updateProgress(68, "正在進行方天龍 01～95 V3 規則判讀...");
-  runAnalysisV3(data, stockId);
+  updateProgress(68, "正在進行方天龍 01～95 V4 規則判讀...");
+  runAnalysisV4(data, stockId);
 
-  updateProgress(88, "正在繪製真實 K 線圖...");
+  updateProgress(88, "正在繪製真實 K 線圖與虛擬 K 線...");
   drawChart(data);
 
   updateProgress(100, "分析完成");
-  addLog("✓ V3 分析完成");
+  addLog("✓ V4 分析完成");
 
  } catch (err) {
   addLog("❌ 錯誤：" + err.message, true);
@@ -491,26 +491,27 @@ const RULES = {
  95:r(95,"空頭三明治","bear",-22,"bear_sandwich","黑紅黑若在跌勢或反彈末端，反彈失敗。")
 };
 
-function runAnalysisV3(data, stockId) {
+function runAnalysisV4(data, stockId) {
  const reportList = document.getElementById("reportList");
  reportList.innerHTML = "";
 
- const signals = detectFTLV3(data);
+ const signals = detectFTLV4(data);
  const final = buildFinalScore(signals, data);
  const latest = data[data.length - 1];
 
- renderSummaryV3(final, signals.length);
+ renderSummaryV4(final, signals.length);
  renderLatestCloseSummary(reportList, latest, signals);
+
+ const shortTerm = buildShortTermEntryAndVirtualK(data, final, signals);
+ latestShortTermResult = shortTerm;
+ renderShortTermEntryReport(reportList, shortTerm);
 
  const latestSignals = [];
  const otherSignals = [];
 
  for (let i = 0; i < signals.length; i++) {
-  if (signals[i].date === latest.time) {
-   latestSignals.push(signals[i]);
-  } else {
-   otherSignals.push(signals[i]);
-  }
+  if (signals[i].date === latest.time) latestSignals.push(signals[i]);
+  else otherSignals.push(signals[i]);
  }
 
  const orderedSignals = latestSignals.concat(otherSignals);
@@ -534,14 +535,14 @@ function runAnalysisV3(data, stockId) {
    s.desc +
    '<br>確認：' + s.confirm +
    '<br>失效：' + s.fail +
-   '<br>V3 分數：' + s.finalScore +
+   '<br>V4 分數：' + s.finalScore +
    '</div>';
 
   reportList.appendChild(div);
  }
 
  addLog("✓ 已優先分析最後收盤日：" + latest.time);
- addLog("✓ 方天龍 V3 規則庫命中 " + signals.length + " 筆訊號");
+ addLog("✓ 方天龍 V4 規則庫命中 " + signals.length + " 筆訊號");
 }
 
 function renderLatestCloseSummary(reportList, latest, signals) {
@@ -609,7 +610,7 @@ function buildFinalScore(signals, data) {
  };
 }
 
-function renderSummaryV3(final, count) {
+function renderSummaryV4(final, count) {
  let bias = "盤整觀察";
  let color = "#ff9100";
  const bull = final.bullScore;
@@ -625,7 +626,7 @@ function renderSummaryV3(final, count) {
 
  document.getElementById("summaryBox").innerHTML =
   '<div class="summary-card" style="border-left-color:' + color + '">' +
-  '<div class="label">V3 綜合方向</div>' +
+  '<div class="label">V4 綜合方向</div>' +
   '<div class="value">' + bias + '</div>' +
   '<div class="note">趨勢加權：' + final.trendBonus + '</div>' +
   '</div>' +
@@ -641,7 +642,7 @@ function renderSummaryV3(final, count) {
   '</div>';
 }
 
-function detectFTLV3(data) {
+function detectFTLV4(data) {
  const signals = [];
  const start = Math.max(2, data.length - 90);
 
@@ -726,6 +727,201 @@ function addSignal(signals, ruleId, candle, position, volumeText, desc, confirm,
   confirm: confirm,
   fail: fail
  });
+}
+
+function buildShortTermEntryAndVirtualK(data, final, signals) {
+ const latest = data[data.length - 1];
+ const prev = data[data.length - 2];
+
+ const bull = final.bullScore;
+ const bear = final.bearScore;
+ const total = Math.max(bull + bear, 1);
+ const bullRatio = bull / total;
+ const bearRatio = bear / total;
+
+ const latestPos = trendPosition(data, data.length - 1);
+ const latestVol = volumeState(data, data.length - 1);
+
+ let score = 50;
+
+ if (latest.close > latest.ma20) score += 10;
+ if (latest.close > latest.ma60) score += 8;
+ if (latest.ma20 > latest.ma60) score += 8;
+ if (latest.ma5 > latest.ma10) score += 6;
+
+ if (latest.close < latest.ma20) score -= 12;
+ if (latest.close < latest.ma60) score -= 8;
+ if (latest.ma20 < latest.ma60) score -= 8;
+ if (latest.ma5 < latest.ma10) score -= 6;
+
+ score += Math.round((bullRatio - bearRatio) * 25);
+
+ if (latestVol === "放量" && latest.close > latest.open) score += 7;
+ if (latestVol === "爆量" && latest.close > latest.open) score += 10;
+ if (latestVol === "放量" && latest.close < latest.open) score -= 7;
+ if (latestVol === "爆量" && latest.close < latest.open) score -= 10;
+ if (latestVol === "量縮" && latest.close > latest.open) score -= 3;
+
+ if (latestPos === "高檔" && bear > bull) score -= 10;
+ if (latestPos === "低檔" && bull > bear) score += 8;
+
+ score = Math.max(0, Math.min(100, score));
+
+ let level = "中";
+ let action = "可觀察，不建議直接追價。";
+
+ if (score >= 80) {
+  level = "高";
+  action = "短線容許度偏高，但仍建議等開盤回測不破再進。";
+ } else if (score >= 65) {
+  level = "中高";
+  action = "短線容許度中高，適合觀察開盤後是否站穩昨日高點或 MA20。";
+ } else if (score >= 50) {
+  level = "中";
+  action = "短線容許度普通，適合等拉回或突破確認。";
+ } else if (score >= 35) {
+  level = "中低";
+  action = "短線容許度偏低，容易震盪，需降低部位。";
+ } else {
+  level = "低";
+  action = "短線容許度低，不宜追多，優先觀察防守價是否跌破。";
+ }
+
+ const resistance = Math.max(latest.high, prev.high, latest.ma20);
+ const support = Math.min(latest.low, prev.low, latest.ma20);
+
+ const entryWatch = round2(Math.max(latest.high, latest.ma20));
+ const riskPrice = round2(Math.min(latest.low, latest.ma20));
+
+ const virtualKs = buildVirtualKLines(data, score, bullRatio, bearRatio);
+
+ return {
+  score: score,
+  level: level,
+  action: action,
+  latestDate: latest.time,
+  latestClose: latest.close,
+  latestPos: latestPos,
+  latestVol: latestVol,
+  entryWatch: entryWatch,
+  riskPrice: riskPrice,
+  resistance: round2(resistance),
+  support: round2(support),
+  bullScore: bull,
+  bearScore: bear,
+  bullRatio: bullRatio,
+  bearRatio: bearRatio,
+  virtualKs: virtualKs
+ };
+}
+
+function buildVirtualKLines(data, score, bullRatio, bearRatio) {
+ const latest = data[data.length - 1];
+ const virtualKs = [];
+
+ let baseClose = latest.close;
+ let directionPower = (score - 50) / 100;
+ let volatility = getRecentVolatility(data, 20);
+
+ if (volatility < 0.012) volatility = 0.012;
+ if (volatility > 0.06) volatility = 0.06;
+
+ for (let i = 1; i <= 3; i++) {
+  const trendFactor = directionPower * volatility * baseClose;
+  const dayNoise = volatility * baseClose * (0.45 + i * 0.12);
+
+  let open = baseClose + trendFactor * 0.35;
+  let close = baseClose + trendFactor * (0.9 + i * 0.18);
+
+  if (score >= 65) {
+   close += dayNoise * 0.35;
+  } else if (score <= 40) {
+   close -= dayNoise * 0.35;
+  }
+
+  const high = Math.max(open, close) + dayNoise * 0.55;
+  const low = Math.min(open, close) - dayNoise * 0.55;
+
+  const v = {
+   day: "未來第 " + i + " 天",
+   time: "虛擬T+" + i,
+   open: round2(open),
+   high: round2(high),
+   low: round2(low),
+   close: round2(close),
+   ma20: latest.ma20,
+   ma60: latest.ma60
+  };
+
+  virtualKs.push(v);
+  baseClose = v.close;
+ }
+
+ return virtualKs;
+}
+
+function getRecentVolatility(data, n) {
+ const start = Math.max(1, data.length - n);
+ let sum = 0;
+ let count = 0;
+
+ for (let i = start; i < data.length; i++) {
+  const prev = data[i - 1];
+  const curr = data[i];
+
+  if (prev.close > 0) {
+   sum += Math.abs(curr.close - prev.close) / prev.close;
+   count++;
+  }
+ }
+
+ return count > 0 ? sum / count : 0.02;
+}
+
+function renderShortTermEntryReport(reportList, result) {
+ let type = "master";
+
+ if (result.score >= 65) type = "buy";
+ else if (result.score < 45) type = "sell";
+
+ let virtualHtml = "";
+
+ for (let i = 0; i < result.virtualKs.length; i++) {
+  const k = result.virtualKs[i];
+
+  virtualHtml +=
+   "<br>" +
+   k.day +
+   "：" +
+   "開 " + k.open.toFixed(2) +
+   "｜高 " + k.high.toFixed(2) +
+   "｜低 " + k.low.toFixed(2) +
+   "｜收 " + k.close.toFixed(2);
+ }
+
+ const div = document.createElement("div");
+ div.className = "item " + type;
+
+ div.innerHTML =
+  '<div class="date">短線進場容許度｜依最新收盤日與歷史量價推估</div>' +
+  '<div class="name">明日短線進場容許度：' + result.level + "（" + result.score + " / 100）" + '</div>' +
+  '<div class="desc">' +
+  '<span class="tag">' + result.latestPos + '</span>' +
+  '<span class="tag">' + result.latestVol + '</span>' +
+  '最後收盤價：' + result.latestClose.toFixed(2) +
+  '<br>多方分數：' + result.bullScore +
+  '｜空方分數：' + result.bearScore +
+  '<br>觀察進場價：站上 ' + result.entryWatch.toFixed(2) + ' 偏強' +
+  '<br>風險防守價：跌破 ' + result.riskPrice.toFixed(2) + ' 轉弱' +
+  '<br>近期支撐：' + result.support.toFixed(2) +
+  '｜近期壓力：' + result.resistance.toFixed(2) +
+  '<br>判斷說明：' + result.action +
+  '<br><br><b>未來 3 天虛擬 K 線情境：</b>' +
+  virtualHtml +
+  '<br><br>提醒：虛擬 K 線不是保證預測，只是依目前 K 線、均線、量能與多空分數推估的短線情境。' +
+  '</div>';
+
+ reportList.insertBefore(div, reportList.children[1] || null);
 }
 
 function candleInfo(c, p) {
@@ -917,6 +1113,13 @@ function prepareChartData(data) {
   prices.push(visible[i].ma60);
  }
 
+ if (latestShortTermResult && latestShortTermResult.virtualKs) {
+  for (let i = 0; i < latestShortTermResult.virtualKs.length; i++) {
+   prices.push(latestShortTermResult.virtualKs[i].high);
+   prices.push(latestShortTermResult.virtualKs[i].low);
+  }
+ }
+
  const maxPrice = Math.max.apply(null, prices);
  const minPrice = Math.min.apply(null, prices);
  const range = maxPrice - minPrice || 1;
@@ -998,6 +1201,8 @@ function drawChartFrame(ctx, canvas, chart, hoverIndex) {
  drawLine(ctx, visible, "ma20", getX, getY, "#2962ff");
  drawLine(ctx, visible, "ma60", getX, getY, "#ff9800");
 
+ drawVirtualKOnChart(ctx, chart);
+
  if (hoverIndex !== null) {
   drawHoverInfo(ctx, chart, hoverIndex);
  }
@@ -1017,6 +1222,54 @@ function drawLine(ctx, data, key, getX, getY, color) {
  }
 
  ctx.stroke();
+}
+
+function drawVirtualKOnChart(ctx, chart) {
+ if (!latestShortTermResult || !latestShortTermResult.virtualKs) return;
+
+ const virtualKs = latestShortTermResult.virtualKs;
+ const visible = chart.visible;
+ const lastIndex = visible.length - 1;
+ const lastX = chart.getX(lastIndex);
+ const step = (chart.w - chart.padding * 2) / visible.length;
+ const candleW = Math.max(4, step * 0.55);
+
+ for (let i = 0; i < virtualKs.length; i++) {
+  const d = virtualKs[i];
+  const x = lastX + step * (i + 1);
+
+  const openY = chart.getY(d.open);
+  const closeY = chart.getY(d.close);
+  const highY = chart.getY(d.high);
+  const lowY = chart.getY(d.low);
+
+  const up = d.close >= d.open;
+
+  ctx.save();
+  ctx.globalAlpha = 0.55;
+  ctx.setLineDash([5, 3]);
+
+  ctx.strokeStyle = up ? "#ef5350" : "#26a69a";
+  ctx.fillStyle = up ? "#ef5350" : "#26a69a";
+
+  ctx.beginPath();
+  ctx.moveTo(x, highY);
+  ctx.lineTo(x, lowY);
+  ctx.stroke();
+
+  ctx.setLineDash([]);
+
+  const top = Math.min(openY, closeY);
+  const height = Math.max(Math.abs(closeY - openY), 1);
+
+  ctx.fillRect(x - candleW / 2, top, candleW, height);
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "11px Arial";
+  ctx.fillText("T+" + (i + 1), x - 10, chart.h - chart.padding + 16);
+
+  ctx.restore();
+ }
 }
 
 function drawHoverInfo(ctx, chart, index) {
@@ -1071,6 +1324,10 @@ function drawHoverInfo(ctx, chart, index) {
  ctx.beginPath();
  ctx.arc(x, closeY, 4, 0, Math.PI * 2);
  ctx.fill();
+}
+
+function round2(num) {
+ return Math.round(num * 100) / 100;
 }
 </script>
 
