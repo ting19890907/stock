@@ -235,13 +235,13 @@ canvas {
  <div class="header">
   <h2 style="color:#fff; margin:0 0 5px 0;">方天龍 K 線精準判讀全自動系統</h2>
   <p style="color:#26a69a; font-weight:bold; margin:0;">
-   ✓ GitHub Pages 版：真實 K 線資料 + 方天龍 01～95 規則庫 + Google AI 補充
+   ✓ GitHub Pages 版：真實 K 線資料 + 方天龍 01～95 規則庫
   </p>
  </div>
 
  <div class="search-box">
   <label style="color:#fff; font-weight:bold;">台股個股代號：</label>
-  <input type="text" id="stockId" value="2354" placeholder="例如: 3234">
+  <input type="text" id="stockId" value="2330" placeholder="例如: 3234">
   <button type="button" onclick="executeGrandMasterSearch()">發動 1-95單元 全自動即時解碼</button>
   <span id="stockStatus" class="loading">✓ 核心已就緒</span>
  </div>
@@ -278,12 +278,7 @@ canvas {
 </div>
 
 <script>
-/*
-  這裡一定要改成你的 Cloudflare Worker 網址。
-  例如：
-  const WORKER_BASE_URL = "https://stock-ai.xxxxxx.workers.dev";
-*/
-const WORKER_BASE_URL = "https://你的-worker網址.workers.dev";
+const WORKER_BASE_URL = "https://summer-frost-680d.puma19890907.workers.dev";
 
 function updateProgress(percent, text) {
  document.getElementById("myBar").style.width = percent + "%";
@@ -303,15 +298,6 @@ function addLog(msg, isError) {
  div.textContent = "[" + time + "] " + msg;
  logBox.appendChild(div);
  logBox.scrollTop = logBox.scrollHeight;
-}
-
-function escapeHtml(text) {
- return String(text)
-  .replaceAll("&", "&amp;")
-  .replaceAll("<", "&lt;")
-  .replaceAll(">", "&gt;")
-  .replaceAll('"', "&quot;")
-  .replaceAll("'", "&#039;");
 }
 
 document.addEventListener("DOMContentLoaded", function() {
@@ -337,10 +323,6 @@ async function executeGrandMasterSearch() {
    return;
   }
 
-  if (WORKER_BASE_URL.indexOf("你的-worker網址") !== -1) {
-   throw new Error("請先把 WORKER_BASE_URL 改成你的 Cloudflare Worker 網址");
-  }
-
   document.getElementById("chartTitle").innerText =
    "技術線圖 台股 " + stockId + " [藍:MA20 | 橘:MA60]";
 
@@ -356,27 +338,7 @@ async function executeGrandMasterSearch() {
   calcMA(data);
 
   updateProgress(65, "正在進行方天龍 01～95 規則庫判讀...");
-  const analysis = runAnalysis(data, stockId);
-
-  updateProgress(75, "正在連線 Google AI...");
-  const originalReport = document.getElementById("reportList").innerText;
-
-  const googlePrompt =
-   "你是台股K線分析助理。請只根據以下本系統已產生的判讀報告，做補充說明與風險提醒。" +
-   "不要改變原本判斷邏輯，不要保證漲跌，不要叫使用者一定買或一定賣。\\n\\n" +
-   "股票代號：" + stockId + "\\n" +
-   "多方分數：" + analysis.bullScore + "\\n" +
-   "空方分數：" + analysis.bearScore + "\\n\\n" +
-   "本系統原始判讀：\\n" + originalReport;
-
-  const googleResult = await callGoogleAI(googlePrompt);
-
-  document.getElementById("reportList").innerHTML +=
-   '<div class="item master">' +
-   '<div class="date">Google AI 連線回傳</div>' +
-   '<div class="name">Gemini 補充說明</div>' +
-   '<div class="desc">' + escapeHtml(googleResult).replace(/\\n/g, "<br>") + '</div>' +
-   '</div>';
+  runAnalysis(data, stockId);
 
   updateProgress(85, "正在繪製真實 K 線圖...");
   drawChart(data);
@@ -404,33 +366,6 @@ async function fetchRealStockData(stockId) {
  addLog("✓ 真實 K 線資料成功，來源：" + json.source + "，共 " + json.data.length + " 筆");
 
  return json.data;
-}
-
-async function callGoogleAI(prompt) {
- try {
-  const response = await fetch(WORKER_BASE_URL + "/api/google-ai", {
-   method: "POST",
-   headers: {
-    "Content-Type": "application/json"
-   },
-   body: JSON.stringify({
-    prompt: prompt
-   })
-  });
-
-  const json = await response.json();
-
-  if (!response.ok || !json.ok) {
-   throw new Error(json.error || "Google AI 連線失敗");
-  }
-
-  addLog("✓ Google AI 已成功回傳");
-  return json.text;
-
- } catch (err) {
-  addLog("⚠ Google AI 連線失敗：" + err.message, true);
-  return "Google AI 補充失敗：" + err.message;
- }
 }
 
 function calcMA(data) {
